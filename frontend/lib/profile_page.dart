@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'pages/step_count_page.dart';
+import 'pages/data_sync_page.dart';
+import 'pages/notification_settings_page.dart';
+import 'pages/privacy_control_page.dart';
+import 'pages/privacy_policy_page.dart';
+import 'pages/terms_of_service_page.dart';
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -135,11 +140,63 @@ class ProfilePage extends StatelessWidget {
               _buildActionTile(
                 icon: Icons.bar_chart_rounded,
                 title: 'Statistics',
+                onTap: () {},
               ),
               const SizedBox(height: 16),
               _buildActionTile(
                 icon: Icons.savings_rounded,
                 title: 'Token History',
+                onTap: () {},
+              ),
+
+              const SizedBox(height: 24),
+              const Text(
+                'Settings & Privacy',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.notifications_active_rounded,
+                title: 'Notification Settings',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationSettingsPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.sync_rounded,
+                title: 'Data Sync',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const DataSyncPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.security_rounded,
+                title: 'Privacy Control',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyControlPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.policy_rounded,
+                title: 'Privacy Policy',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.article_rounded,
+                title: 'Terms of Service',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsOfServicePage()));
+                },
               ),
 
               const SizedBox(height: 24),
@@ -275,32 +332,35 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionTile({required IconData icon, required String title}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 28),
-          const SizedBox(width: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+  Widget _buildActionTile({required IconData icon, required String title, VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0F0F),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const Spacer(),
-          const Icon(
-            Icons.arrow_forward_rounded,
-            color: Colors.white,
-            size: 28,
-          ),
-        ],
+            const Spacer(),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ],
+        ),
       ),
     );
   }

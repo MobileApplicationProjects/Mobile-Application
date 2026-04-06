@@ -1,0 +1,254 @@
+import 'package:flutter/material.dart';
+
+class AboutYouEditPage extends StatefulWidget {
+  const AboutYouEditPage({super.key});
+
+  @override
+  State<AboutYouEditPage> createState() => _AboutYouEditPageState();
+}
+
+class _AboutYouEditPageState extends State<AboutYouEditPage> {
+  bool _isLoading = true;
+  bool _isEdited = false;
+
+  DateTime? _birthDate;
+  String _gender = 'Female';
+  
+  final _heightCtrl = TextEditingController();
+  final _weightCtrl = TextEditingController();
+
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAboutYouData();
+    _heightCtrl.addListener(_onFieldChanged);
+    _weightCtrl.addListener(_onFieldChanged);
+  }
+
+  @override
+  void dispose() {
+    _heightCtrl.removeListener(_onFieldChanged);
+    _weightCtrl.removeListener(_onFieldChanged);
+    _heightCtrl.dispose();
+    _weightCtrl.dispose();
+    super.dispose();
+  }
+
+  void _onFieldChanged() {
+    if (!_isEdited && !_isLoading) {
+      setState(() {
+        _isEdited = true;
+      });
+    }
+  }
+
+  // [API MOCK] โหลดข้อมูล About you
+  Future<void> _fetchAboutYouData() async {
+    setState(() => _isLoading = true);
+
+    // TODO: เรียกใช้ API GET /user/about
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    setState(() {
+      _birthDate = DateTime(1999, 11, 12);
+      _gender = 'Female';
+      _heightCtrl.text = '170 cm'; // In real app, you might just store '170' and append ' cm' or parse it
+      _weightCtrl.text = '50 kg';
+      _isLoading = false;
+      _isEdited = false;
+    });
+  }
+
+  // [API MOCK] บันทึกข้อมูล About you
+  Future<void> _saveAboutYou() async {
+    setState(() => _isLoading = true);
+
+    // TODO: เรียกใช้ API PUT 
+    // final body = {
+    //    'birthDate': _birthDate?.toIso8601String(),
+    //    'gender': _gender,
+    //    'height': _heightCtrl.text,
+    //    'weight': _weightCtrl.text,
+    // }
+    await Future.delayed(const Duration(milliseconds: 800));
+
+    setState(() {
+      _isLoading = false;
+      _isEdited = false;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('About you updated successfully!')),
+      );
+    }
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _birthDate) {
+      setState(() {
+        _birthDate = picked;
+      });
+      _onFieldChanged();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Format date specifically for display (e.g., "12 Nov 1999")
+    final dateString = _birthDate != null
+        ? '${_birthDate!.day.toString().padLeft(2, '0')} '
+          '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][_birthDate!.month - 1]} '
+          '${_birthDate!.year}'
+        : 'Select Date';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF1D1D1D),
+      appBar: AppBar(
+        title: const Text('About you Edit', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          if (_isEdited)
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0, top: 10, bottom: 10),
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveAboutYou,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[700],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                ),
+                child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator(color: Colors.red))
+            : SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Birth date Group
+                    _buildLabel('Birth date'),
+                    GestureDetector(
+                      onTap: _pickDate,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              dateString,
+                              style: const TextStyle(color: Colors.black, fontSize: 16),
+                            ),
+                            const Icon(Icons.calendar_month_rounded, color: Colors.black, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Gender Group
+                    _buildLabel('Gender'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _gender,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black),
+                          style: const TextStyle(color: Colors.black, fontSize: 16),
+                          dropdownColor: Colors.white,
+                          items: _genderOptions.map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(value),
+                            );
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            if (newValue != null && newValue != _gender) {
+                              setState(() {
+                                _gender = newValue;
+                              });
+                              _onFieldChanged();
+                            }
+                          },
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Physical Group
+                    _buildLabel('Physical'),
+                    Container(
+                      color: Colors.white,
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _heightCtrl,
+                            style: const TextStyle(color: Colors.black, fontSize: 16),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              isDense: true,
+                            ),
+                          ),
+                          const Divider(height: 1, color: Colors.grey),
+                          TextField(
+                            controller: _weightCtrl,
+                            style: const TextStyle(color: Colors.black, fontSize: 16),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              isDense: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}

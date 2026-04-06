@@ -1,156 +1,228 @@
 import 'package:flutter/material.dart';
 import 'pages/step_count_page.dart';
-class ProfilePage extends StatelessWidget {
+import 'pages/statistics_page.dart';
+import 'pages/token_history_page.dart';
+import 'pages/settings_page.dart';
+
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  bool _isLoading = true;
+
+  // API Data States
+  String _userName = '';
+  int _tokenBalance = 0;
+  Map<String, String> _thisWeekStats = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfileData();
+  }
+
+  // [API MOCK] ดึงข้อมูลส่วนตัวของผู้ใช้ (Profile)
+  Future<void> _fetchProfileData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    // TODO: เรียกใช้ API ของคุณที่นี่ เช่น
+    // final response = await api.get('/user/profile/summary');
+
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    setState(() {
+      _userName = 'Dianne West';
+      _tokenBalance = 100;
+      _thisWeekStats = {
+        'Step': '10,000',
+        'Calories': '900 kcal',
+        'Distance': '6 km',
+      };
+      _isLoading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1D1D1D),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // --- APP BAR ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.settings_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // --- PROFILE INFO ---
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 32,
-                    backgroundColor: Colors.grey[800],
-                    child: const Icon(
-                      Icons.person,
-                      size: 40,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.red),
+              )
+            : SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // --- APP BAR ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Good Day!',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Dianne West',
-                          style: TextStyle(
+                        IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
                             color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                            size: 28,
                           ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.settings_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const SettingsPage(),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+                    const SizedBox(height: 16),
+
+                    // --- PROFILE INFO ---
+                    Row(
                       children: [
-                        const Text(
-                          '100',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.amber,
-                          ),
+                        CircleAvatar(
+                          radius: 32,
+                          backgroundColor: Colors.grey[800],
                           child: const Icon(
-                            Icons.monetization_on,
+                            Icons.person,
+                            size: 40,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Good Day!',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _userName,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
                             color: Colors.white,
-                            size: 16,
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _tokenBalance.toString(),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                width: 20,
+                                height: 20,
+                                decoration: const BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: Colors.amber,
+                                ),
+                                child: const Icon(
+                                  Icons.monetization_on,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-              // --- THIS WEEK CHART CARD ---
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const StepCountPage(initialTab: 'W'),
+                    // --- THIS WEEK CHART CARD ---
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StepCountPage(initialTab: 'W'),
+                          ),
+                        );
+                      },
+                      child: _buildChartCard(),
                     ),
-                  );
-                },
-                child: _buildChartCard(),
+
+                    const SizedBox(height: 24),
+
+                    // --- ACTIONS ---
+                    _buildActionTile(
+                      icon: Icons.bar_chart_rounded,
+                      title: 'Statistics',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StatisticsPage(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildActionTile(
+                      icon: Icons.savings_rounded,
+                      title: 'Token History',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TokenHistoryPage(),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // --- LEADER BOARD TROPHY ---
+                    _buildTrophyCard(),
+
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
-
-              const SizedBox(height: 24),
-
-              // --- ACTIONS ---
-              _buildActionTile(
-                icon: Icons.bar_chart_rounded,
-                title: 'Statistics',
-              ),
-              const SizedBox(height: 16),
-              _buildActionTile(
-                icon: Icons.savings_rounded,
-                title: 'Token History',
-              ),
-
-              const SizedBox(height: 24),
-
-              // --- LEADER BOARD TROPHY ---
-              _buildTrophyCard(),
-
-              const SizedBox(height: 32),
-            ],
-          ),
-        ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
@@ -178,9 +250,9 @@ class ProfilePage extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildChartStat('Step', '10,000'),
-              _buildChartStat('Calories', '900 kcal'),
-              _buildChartStat('Distance', '6 km'),
+              _buildChartStat('Step', _thisWeekStats['Step'] ?? '0'),
+              _buildChartStat('Calories', _thisWeekStats['Calories'] ?? '0 kcal'),
+              _buildChartStat('Distance', _thisWeekStats['Distance'] ?? '0 km'),
               const SizedBox(width: 40),
             ],
           ),
@@ -262,7 +334,7 @@ class ProfilePage extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Container(
-          width: 30, // Adjust if screen is narrow, Expanded distributes evenly
+          width: 30,
           height: 130 * percent,
           decoration: BoxDecoration(
             color: isHighlight ? Colors.orange[700] : const Color(0xFF8B0000),
@@ -275,32 +347,39 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildActionTile({required IconData icon, required String title}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F0F0F),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white, size: 28),
-          const SizedBox(width: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0F0F),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 28),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const Spacer(),
-          const Icon(
-            Icons.arrow_forward_rounded,
-            color: Colors.white,
-            size: 28,
-          ),
-        ],
+            const Spacer(),
+            const Icon(
+              Icons.arrow_forward_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -369,7 +448,7 @@ class ProfilePage extends StatelessWidget {
       children: [
         Image.asset(
           imagePath,
-          width: 80, // Enlarge the medal size
+          width: 80,
           height: 80,
           fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) => Container(
@@ -387,8 +466,8 @@ class ProfilePage extends StatelessWidget {
           label,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 16, // Increase font size to match figma
-            fontWeight: FontWeight.w500, // Medium font weight
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
           ),
         ),
       ],

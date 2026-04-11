@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import 'pages/step_count_page.dart';
+import 'pages/data_sync_page.dart';
+import 'pages/notification_settings_page.dart';
+import 'pages/privacy_control_page.dart';
+import 'pages/privacy_policy_page.dart';
+import 'pages/terms_of_service_page.dart';
+class ProfilePage extends StatelessWidget {
 import 'pages/statistics_page.dart';
 import 'pages/token_history_page.dart';
 import 'pages/settings_page.dart';
@@ -187,6 +193,68 @@ class _ProfilePageState extends State<ProfilePage> {
 
                     const SizedBox(height: 24),
 
+              // --- ACTIONS ---
+              _buildActionTile(
+                icon: Icons.bar_chart_rounded,
+                title: 'Statistics',
+                onTap: () {},
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.savings_rounded,
+                title: 'Token History',
+                onTap: () {},
+              ),
+
+              const SizedBox(height: 24),
+              const Text(
+                'Settings & Privacy',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.notifications_active_rounded,
+                title: 'Notification Settings',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationSettingsPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.sync_rounded,
+                title: 'Data Sync',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const DataSyncPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.security_rounded,
+                title: 'Privacy Control',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyControlPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.policy_rounded,
+                title: 'Privacy Policy',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()));
+                },
+              ),
+              const SizedBox(height: 16),
+              _buildActionTile(
+                icon: Icons.article_rounded,
+                title: 'Terms of Service',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsOfServicePage()));
+                },
+              ),
                     // --- ACTIONS ---
                     _buildActionTile(
                       icon: Icons.bar_chart_rounded,
@@ -347,6 +415,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
+  Widget _buildActionTile({required IconData icon, required String title, VoidCallback? onTap}) {
   Widget _buildActionTile({
     required IconData icon,
     required String title,

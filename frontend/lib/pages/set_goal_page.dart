@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 class SetGoalPage extends StatefulWidget {
   final int initialGoal;
-  
-  const SetGoalPage({
-    super.key,
-    this.initialGoal = 5000,
-  });
+
+  const SetGoalPage({super.key, this.initialGoal = 5000});
 
   @override
   State<SetGoalPage> createState() => _SetGoalPageState();
@@ -29,7 +26,7 @@ class _SetGoalPageState extends State<SetGoalPage> {
     // setState(() { _currentGoal = response.data.step_goal_daily; });
   }
 
-  // [API MOCK] อัปเดตเป้าหมายไปยังฐานข้อมูล 
+  // [API MOCK] อัปเดตเป้าหมายไปยังฐานข้อมูล
   Future<void> _updateGoal(int newGoal) async {
     // TODO: เรียก API update_user_settings.step_goal_daily
     // await http.post('api/settings/update', body: {'step_goal_daily': newGoal});
@@ -66,13 +63,17 @@ class _SetGoalPageState extends State<SetGoalPage> {
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
               ),
             ),
-            
+
             // --- HEADER TEXT ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -99,7 +100,7 @@ class _SetGoalPageState extends State<SetGoalPage> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 48),
 
             // --- GOAL SETTER AREA ---
@@ -121,24 +122,30 @@ class _SetGoalPageState extends State<SetGoalPage> {
                               color: Colors.red[800],
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.remove, color: Colors.white),
+                            child: const Icon(
+                              Icons.remove,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
-                        
+
                         const SizedBox(width: 32),
-                        
+
                         // Goal Number
                         Text(
-                          '${_currentGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}',
+                          _currentGoal.toString().replaceAllMapped(
+                            RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                            (Match m) => '${m[1]},',
+                          ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 48,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        
+
                         const SizedBox(width: 32),
-                        
+
                         // Plus Button
                         GestureDetector(
                           onTap: _increaseGoal,
@@ -195,16 +202,36 @@ class _SetGoalPageState extends State<SetGoalPage> {
                 Navigator.popUntil(context, (route) => route.isFirst);
               },
             ),
-            _buildNavItem(icon: Icons.location_on_rounded, label: 'MAP', isActive: false, onTap: () {}),
-            _buildNavItem(icon: Icons.track_changes_rounded, label: 'CHALLENGE', isActive: false, onTap: () {}),
-            _buildNavItem(icon: Icons.ios_share_rounded, label: 'SHARE', isActive: false, onTap: () {}),
+            _buildNavItem(
+              icon: Icons.location_on_rounded,
+              label: 'MAP',
+              isActive: false,
+              onTap: () {},
+            ),
+            _buildNavItem(
+              icon: Icons.track_changes_rounded,
+              label: 'CHALLENGE',
+              isActive: false,
+              onTap: () {},
+            ),
+            _buildNavItem(
+              icon: Icons.ios_share_rounded,
+              label: 'SHARE',
+              isActive: false,
+              onTap: () {},
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem({required IconData icon, required String label, required bool isActive, required VoidCallback onTap}) {
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
     final color = isActive ? Colors.red[700]! : Colors.white;
     return GestureDetector(
       onTap: onTap,
@@ -213,7 +240,14 @@ class _SetGoalPageState extends State<SetGoalPage> {
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

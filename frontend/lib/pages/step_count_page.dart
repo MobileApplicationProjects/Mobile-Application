@@ -6,7 +6,11 @@ class ChartBarData {
   final double percent;
   final bool isHighlight;
 
-  ChartBarData({required this.label, required this.percent, this.isHighlight = false});
+  ChartBarData({
+    required this.label,
+    required this.percent,
+    this.isHighlight = false,
+  });
 }
 
 class StepCountPage extends StatefulWidget {
@@ -20,14 +24,14 @@ class StepCountPage extends StatefulWidget {
 
 class _StepCountPageState extends State<StepCountPage> {
   late String _activeTab;
-  
+
   // Data State
   String _title = '';
   String _stepStr = '0';
   String _calStr = '0 kcal';
   String _distStr = '0 km';
   String _avgStepStr = '0';
-  int _currentGoal = 5000;
+  final int _currentGoal = 5000;
   List<ChartBarData> _chartData = [];
   bool _isLoading = true;
 
@@ -130,7 +134,11 @@ class _StepCountPageState extends State<StepCountPage> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -148,13 +156,19 @@ class _StepCountPageState extends State<StepCountPage> {
 
             // --- TABS (D/W/M/Y) ---
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24.0,
+                vertical: 8.0,
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.black,
                   borderRadius: BorderRadius.circular(30),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -166,7 +180,7 @@ class _StepCountPageState extends State<StepCountPage> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 16),
 
             // --- CHART CARD ---
@@ -178,7 +192,7 @@ class _StepCountPageState extends State<StepCountPage> {
                   children: [
                     _buildChartCard(),
                     const SizedBox(height: 24),
-                    
+
                     // -- GOAL & AVG INFO --
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -188,22 +202,45 @@ class _StepCountPageState extends State<StepCountPage> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Your current goal', style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+                              Text(
+                                'Your current goal',
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 13,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Text(
-                                '${_currentGoal.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')}', 
-                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+                                _currentGoal.toString().replaceAllMapped(
+                                  RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                  (Match m) => '${m[1]},',
+                                ),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Your Avg. step', style: TextStyle(color: Colors.grey[400], fontSize: 13)),
+                              Text(
+                                'Your Avg. step',
+                                style: TextStyle(
+                                  color: Colors.grey[400],
+                                  fontSize: 13,
+                                ),
+                              ),
                               const SizedBox(height: 4),
                               Text(
-                                _avgStepStr, 
-                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+                                _avgStepStr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ],
                           ),
@@ -211,7 +248,7 @@ class _StepCountPageState extends State<StepCountPage> {
                       ),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // -- SET GOAL BUTTON --
                     Align(
                       alignment: Alignment.centerLeft,
@@ -221,13 +258,19 @@ class _StepCountPageState extends State<StepCountPage> {
                           onTap: () async {
                             await Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => SetGoalPage(initialGoal: _currentGoal)),
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    SetGoalPage(initialGoal: _currentGoal),
+                              ),
                             );
                             // Refresh data when returning, in case goal was changed
                             _fetchDataForTab(_activeTab);
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.red[800],
                               borderRadius: BorderRadius.circular(30),
@@ -284,66 +327,85 @@ class _StepCountPageState extends State<StepCountPage> {
         borderRadius: BorderRadius.circular(28),
       ),
       padding: const EdgeInsets.all(24),
-      child: _isLoading 
-        ? const SizedBox(
-            height: 250, 
-            child: Center(child: CircularProgressIndicator(color: Colors.red))
-          )
-        : Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              _title,
-              style: TextStyle(
-                color: Colors.red[700],
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
+      child: _isLoading
+          ? const SizedBox(
+              height: 250,
+              child: Center(
+                child: CircularProgressIndicator(color: Colors.red),
               ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildStatValue('Step', _stepStr),
-                _buildStatValue('Calories', _calStr),
-                _buildStatValue('Distance', _distStr),
-              ],
-            ),
-            const SizedBox(height: 40),
-            // Bar Chart Custom UI
-            SizedBox(
-              height: 160,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: _chartData.map((data) => _buildBar(data.label, data.percent, isHighlight: data.isHighlight)).toList(),
-                    ),
+                Text(
+                  _title,
+                  style: TextStyle(
+                    color: Colors.red[700],
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
                   ),
-                  const SizedBox(width: 16),
-                  Container(
-                    width: 3,
-                    height: double.infinity,
-                    color: Colors.grey[200],
-                  ),
-                  const SizedBox(width: 12),
-                  const Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _buildStatValue('Step', _stepStr),
+                    _buildStatValue('Calories', _calStr),
+                    _buildStatValue('Distance', _distStr),
+                  ],
+                ),
+                const SizedBox(height: 40),
+                // Bar Chart Custom UI
+                SizedBox(
+                  height: 160,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text('3000', style: TextStyle(color: Colors.grey, fontSize: 10)),
-                      Text('1500', style: TextStyle(color: Colors.grey, fontSize: 10)),
-                      Text('0', style: TextStyle(color: Colors.grey, fontSize: 10)),
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: _chartData
+                              .map(
+                                (data) => _buildBar(
+                                  data.label,
+                                  data.percent,
+                                  isHighlight: data.isHighlight,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(
+                        width: 3,
+                        height: double.infinity,
+                        color: Colors.grey[200],
+                      ),
+                      const SizedBox(width: 12),
+                      const Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '3000',
+                            style: TextStyle(color: Colors.grey, fontSize: 10),
+                          ),
+                          Text(
+                            '1500',
+                            style: TextStyle(color: Colors.grey, fontSize: 10),
+                          ),
+                          Text(
+                            '0',
+                            style: TextStyle(color: Colors.grey, fontSize: 10),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
     );
   }
 
@@ -404,16 +466,36 @@ class _StepCountPageState extends State<StepCountPage> {
                 Navigator.popUntil(context, (route) => route.isFirst);
               },
             ),
-            _buildNavItem(icon: Icons.location_on_rounded, label: 'MAP', isActive: false, onTap: () {}),
-            _buildNavItem(icon: Icons.track_changes_rounded, label: 'CHALLENGE', isActive: false, onTap: () {}),
-            _buildNavItem(icon: Icons.ios_share_rounded, label: 'SHARE', isActive: false, onTap: () {}),
+            _buildNavItem(
+              icon: Icons.location_on_rounded,
+              label: 'MAP',
+              isActive: false,
+              onTap: () {},
+            ),
+            _buildNavItem(
+              icon: Icons.track_changes_rounded,
+              label: 'CHALLENGE',
+              isActive: false,
+              onTap: () {},
+            ),
+            _buildNavItem(
+              icon: Icons.ios_share_rounded,
+              label: 'SHARE',
+              isActive: false,
+              onTap: () {},
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem({required IconData icon, required String label, required bool isActive, required VoidCallback onTap}) {
+  Widget _buildNavItem({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
     final color = isActive ? Colors.red[700]! : Colors.white;
     return GestureDetector(
       onTap: onTap,
@@ -422,7 +504,14 @@ class _StepCountPageState extends State<StepCountPage> {
         children: [
           Icon(icon, color: color, size: 28),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
         ],
       ),
     );

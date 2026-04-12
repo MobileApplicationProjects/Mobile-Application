@@ -1,8 +1,150 @@
 import 'package:flutter/material.dart';
 import 'profile_page.dart';
+import 'pages/rewards_page.dart';
+import 'pages/streak_page.dart';
+import 'pages/leaderboard_page.dart';
+import 'pages/challenge_page.dart';
+import 'services/auth_service.dart';
+import 'services/health_service.dart';
+import 'services/challenge_service.dart';
+import 'services/notification_service.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  String _firstName = '...';
+  String _role = 'user'; // 'admin' or 'user'
+  int _steps = 0;
+  double _calories = 0.0;
+  double _distanceKm = 0.0;
+  int _currentBalance = 0;
+  
+  Map<String, dynamic>? _latestChallenge;
+  final ChallengeService _challengeService = ChallengeService();
+  final NotificationService _notificationService = NotificationService();
+  bool _isClaiming = false;
+  bool _isLoadingChallenge = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initNotification();
+    _loadProfile();
+    _loadHealthData();
+    _loadLatestChallenge();
+  }
+
+  Future<void> _initNotification() async {
+    await _notificationService.init();
+    await _notificationService.requestPermissions();
+  }
+
+  Future<void> _loadHealthData() async {
+    final healthData = await HealthService().fetchTodayMetrics();
+    if (mounted) {
+      setState(() {
+        _steps = healthData['steps'] ?? 0;
+        _calories = (healthData['calories'] ?? 0.0).toDouble();
+        
+        // Convert distance from meters to km and format to 1 decimal place
+        double meters = (healthData['distance'] ?? 0.0).toDouble();
+        _distanceKm = meters / 1000.0;
+      });
+      // Detect completion after health data loaded
+      _checkChallengeCompletion();
+    }
+  }
+
+  Future<void> _loadLatestChallenge() async {
+    setState(() => _isLoadingChallenge = true);
+    try {
+      final challenge = await _challengeService.getLatestChallenge();
+      if (mounted) {
+        setState(() {
+          _latestChallenge = challenge;
+          _isLoadingChallenge = false;
+        });
+        // Check once loaded
+        if (challenge != null) _checkChallengeCompletion();
+      }
+    } catch (e) {
+      debugPrint('Error loading latest challenge: $e');
+      if (mounted) setState(() => _isLoadingChallenge = false);
+    }
+  }
+
+  Future<void> _checkChallengeCompletion() async {
+    if (_latestChallenge == null || _isClaiming) return;
+    
+    // Check if already claimed
+    if (_latestChallenge!['user_status'] == 'Claimed') return;
+
+    final targetType = _latestChallenge!['target_type']; // 'Steps', 'Distance', 'Time'
+    final targetValue = (_latestChallenge!['target_value'] as num).toInt();
+    
+    bool isCompleted = false;
+    if (targetType == 'Steps' && _steps >= targetValue) {
+      isCompleted = true;
+    } else if (targetType == 'Distance' && (_distanceKm * 1000) >= targetValue) {
+      isCompleted = true;
+    }
+
+    if (isCompleted) {
+      _autoClaimChallenge();
+    }
+  }
+
+  Future<void> _autoClaimChallenge() async {
+    if (_isClaiming) return;
+    setState(() => _isClaiming = true);
+
+    try {
+      final result = await _challengeService.claimChallenge(_latestChallenge!['id']);
+      if (mounted) {
+        // Show notification
+        await _notificationService.showNotification(
+          title: 'Challenge สำเร็จ! 🎉',
+          body: 'คุณได้รับ ${_latestChallenge!['reward_amount']} Token จากภารกิจ ${_latestChallenge!['title']}',
+        );
+
+        setState(() {
+          _currentBalance = (result['newBalance'] as num?)?.toInt() ?? 
+                            (_currentBalance + (_latestChallenge!['reward_amount'] as num).toInt());
+          _latestChallenge!['user_status'] = 'Claimed'; 
+          _isClaiming = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error claiming challenge: $e');
+      if (mounted) setState(() => _isClaiming = false);
+    }
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final authService = AuthService();
+      final result = await authService.getProfile();
+      if (mounted) {
+        setState(() {
+          _firstName = result['profile']['firstName'] ?? 'User';
+          _role = result['profile']['role'] ?? 'user';
+          _currentBalance = result['profile']['currentBalance'] ?? 0;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _firstName = 'User';
+          _role = 'user';
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,22 +152,36 @@ class HomePage extends StatelessWidget {
       backgroundColor: const Color(0xFF1D1D1D),
       bottomNavigationBar: _buildBottomNavigationBar(),
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- TOP BAR SECTION ---
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ProfilePage(),
-                    ),
-                  );
-                },
+        child: RefreshIndicator(
+          color: Colors.red[700],
+          backgroundColor: Colors.white,
+          onRefresh: () async {
+            await Future.wait([
+              _loadProfile(),
+              _loadHealthData(),
+              _loadLatestChallenge(),
+            ]);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // --- TOP BAR SECTION ---
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ProfilePage(),
+                      ),
+                    ).then((_) {
+                      // Reload when returning from Profile/Settings/Admin
+                      _loadProfile();
+                      _loadLatestChallenge();
+                    });
+                  },
                 child: Row(
                   children: [
                     CircleAvatar(
@@ -41,9 +197,9 @@ class HomePage extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Hello, Dianne',
-                          style: TextStyle(
+                        Text(
+                          'Hello, $_firstName',
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -70,9 +226,9 @@ class HomePage extends StatelessWidget {
                       ),
                       child: Row(
                         children: [
-                          const Text(
-                            '100',
-                            style: TextStyle(
+                          Text(
+                            '$_currentBalance',
+                            style: const TextStyle(
                               color: Colors.black,
                               fontWeight: FontWeight.w800,
                               fontSize: 14,
@@ -135,27 +291,27 @@ class HomePage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildActivityRing(
-                            value: 0.6,
+                            value: _steps / 5000.0,
                             icon: Icons.directions_run_rounded,
                             iconColor: Colors.red[400]!,
-                            valueText: '3,000',
+                            valueText: '${_steps.toString().replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ',')}',
                             titleText: 'Step',
                             subtitleText: 'Goal 5000',
                             ringColor: Colors.orange[800]!,
                           ),
                           _buildActivityRing(
-                            value: 0.3,
+                            value: (_calories / 500.0).clamp(0.0, 1.0), // Assuming 500 kcal is goal
                             icon: Icons.local_fire_department_rounded,
                             iconColor: Colors.red[400]!,
-                            valueText: '50 kcal',
+                            valueText: '${_calories.toStringAsFixed(0)} kcal',
                             titleText: 'Calories',
                             ringColor: Colors.orange[800]!,
                           ),
                           _buildActivityRing(
-                            value: 0.4,
+                            value: (_distanceKm / 5.0).clamp(0.0, 1.0), // Assuming 5 km is goal
                             icon: Icons.arrow_forward_rounded,
                             iconColor: Colors.red[400]!,
-                            valueText: '1.5 km',
+                            valueText: '${_distanceKm.toStringAsFixed(1)} km',
                             titleText: 'Distance',
                             ringColor: Colors.orange[800]!,
                           ),
@@ -174,11 +330,19 @@ class HomePage extends StatelessWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // TODO: Implement Rewards click
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RewardsPage(
+                              isAdmin: _role == 'admin',
+                              currentBalance: _currentBalance,
+                            ),
+                          ),
+                        );
                       },
                       child: _buildCard(
                         imagePath: 'assets/images/medal.png',
-                        topText: '100 Token',
+                        topText: '$_currentBalance Token',
                         bottomText: 'Rewards',
                       ),
                     ),
@@ -187,7 +351,12 @@ class HomePage extends StatelessWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        // TODO: Implement Streak click
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const StreakPage(),
+                          ),
+                        );
                       },
                       child: _buildCard(
                         imagePath: 'assets/images/fire.png',
@@ -201,18 +370,41 @@ class HomePage extends StatelessWidget {
               const SizedBox(height: 24),
 
               // --- LEADERBOARD CARD ---
-              _buildLeaderboardCard(),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LeaderboardPage(),
+                    ),
+                  );
+                },
+                child: _buildLeaderboardCard(),
+              ),
 
               const SizedBox(height: 24),
 
               // --- CHALLENGE CARD ---
-              _buildChallengeCard(),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChallengePage(isAdmin: _role == 'admin'),
+                    ),
+                  ).then((_) {
+                    _loadLatestChallenge();
+                  });
+                },
+                child: _buildChallengeCard(),
+              ),
 
               const SizedBox(height: 32),
             ],
           ),
         ),
       ),
+    ),
     );
   }
 
@@ -436,6 +628,21 @@ class HomePage extends StatelessWidget {
   }
 
   Widget _buildChallengeCard() {
+    if (_isLoadingChallenge) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+        child: const Center(child: CircularProgressIndicator(color: Colors.black)),
+      );
+    }
+
+    final bool hasChallenge = _latestChallenge != null;
+    final bool isClaimed = hasChallenge && _latestChallenge!['user_status'] == 'Claimed';
+
+    final title = hasChallenge ? _latestChallenge!['title'] : 'ไม่มี Challenge';
+    final description = hasChallenge ? (_latestChallenge!['description'] ?? 'ไม่มีรายละเอียด') : 'คุณทำภารกิจเสร็จหมดแล้ว หรือยังไม่มีภารกิจใหม่';
+    final reward = hasChallenge ? _latestChallenge!['reward_amount'] : 0;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -458,11 +665,18 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              const Icon(
-                Icons.arrow_forward_rounded,
-                color: Colors.black,
-                size: 24,
-              ),
+              if (isClaimed)
+                const Icon(
+                  Icons.check_circle,
+                  color: Colors.green,
+                  size: 24,
+                )
+              else
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: Colors.black,
+                  size: 24,
+                ),
             ],
           ),
           const SizedBox(height: 16),
@@ -475,9 +689,9 @@ class HomePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Morning Walk',
-                      style: TextStyle(
+                    Text(
+                      title,
+                      style: const TextStyle(
                         color: Colors.black,
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
@@ -485,7 +699,7 @@ class HomePage extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Gain 2000 step before 09:00\nto claim extra token',
+                      description,
                       style: TextStyle(
                         color: Colors.grey[600],
                         fontSize: 12,
@@ -498,10 +712,10 @@ class HomePage extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    '20',
+                  Text(
+                    '$reward',
                     style: TextStyle(
-                      color: Colors.black,
+                      color: isClaimed ? Colors.green : (hasChallenge ? Colors.black : Colors.grey[400]),
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
                     ),
@@ -510,9 +724,9 @@ class HomePage extends StatelessWidget {
                   Container(
                     width: 20,
                     height: 20,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.amber,
+                      color: hasChallenge ? Colors.amber : Colors.grey[300],
                     ),
                     child: const Icon(
                       Icons.monetization_on,

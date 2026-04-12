@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'profile_edit_page.dart';
 import 'about_you_edit_page.dart';
+import 'sign_in_page.dart';
+import '../services/auth_service.dart';
 
 class MenuItem {
   final String title;
@@ -30,20 +32,30 @@ class _SettingsPageState extends State<SettingsPage> {
     _fetchSettingsData();
   }
 
-  // [API MOCK] ฟังก์ชันดึงข้อมูลผู้ใช้สำหรับตั้งค่า
+  // ดึงข้อมูลผู้ใช้สำหรับตั้งค่าจาก API
   Future<void> _fetchSettingsData() async {
     setState(() {
       _isLoading = true;
     });
 
-    // TODO: เรียกใช้ API ของคุณที่นี่ เช่น GET /user/profile
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final authService = AuthService();
+      final result = await authService.getProfile();
+      final profile = result['profile'];
 
-    setState(() {
-      _userName = 'Dianne West';
-      _profileImageUrl = 'https://i.pravatar.cc/300?img=47'; // Mock image
-      _isLoading = false;
-    });
+      setState(() {
+        _userName = '${profile['firstName']} ${profile['lastName']}';
+        _profileImageUrl = ''; // Profile image not yet implemented
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _userName = 'Unknown User';
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -91,8 +103,47 @@ class _SettingsPageState extends State<SettingsPage> {
               MenuItem(
                 title: 'Logout',
                 isLogout: true,
-                onTap: () {
-                  // TODO: Call API for logout
+                onTap: () async {
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: const Color(0xFF2A2A2A),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      title: const Text(
+                        'ออกจากระบบ',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                      content: Text(
+                        'คุณต้องการออกจากระบบใช่ไหม?',
+                        style: TextStyle(color: Colors.grey[400]),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: Text('ยกเลิก', style: TextStyle(color: Colors.grey[400])),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(ctx, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[700],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('ออกจากระบบ', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmed == true && mounted) {
+                    await AuthService().signOut();
+                    if (mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (context) => const SignInPage()),
+                        (route) => false,
+                      );
+                    }
+                  }
                 },
               ),
             ]),

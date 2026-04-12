@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'email_edit_page.dart';
+import '../services/auth_service.dart';
 
 class ProfileEditPage extends StatefulWidget {
   const ProfileEditPage({super.key});
@@ -50,22 +51,31 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     }
   }
 
-  // [API MOCK] โหลดข้อมูล Profile
+  // ดึงข้อมูล Profile จาก API
   Future<void> _fetchProfileData() async {
     setState(() => _isLoading = true);
 
-    // TODO: เรียกใช้ API GET /user/profile/edit
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final authService = AuthService();
+      final result = await authService.getProfile();
+      final profile = result['profile'];
 
-    setState(() {
-      _email = 'dianne@gmail.com';
-      _firstNameCtrl.text = 'Dianne';
-      _lastNameCtrl.text = 'West';
-      _address1Ctrl.text = 'Phutthamonthon';
-      _address2Ctrl.text = 'Nakhon Pathom';
-      _isLoading = false;
-      _isEdited = false; // reset after load
-    });
+      setState(() {
+        _email = profile['email'] ?? '';
+        _firstNameCtrl.text = profile['firstName'] ?? '';
+        _lastNameCtrl.text = profile['lastName'] ?? '';
+        _address1Ctrl.text = 'Phutthamonthon'; // Address feature not in db yet
+        _address2Ctrl.text = 'Nakhon Pathom';
+        _isLoading = false;
+        _isEdited = false; // reset after load
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   // [API MOCK] บันทึกข้อมูล Profile

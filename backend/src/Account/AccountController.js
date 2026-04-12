@@ -93,11 +93,41 @@ class AccountController {
           id: user.id, 
           email: user.email, 
           firstName: user.first_name, 
-          lastName: user.last_name 
+          lastName: user.last_name,
+          currentBalance: user.current_balance || 0 
         }
       });
     } catch (error) {
       console.error('Login error:', error);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
+
+  static async getProfile(req, res) {
+    try {
+      const userId = req.user.id;
+      const userProfile = await AccountModel.findById(userId);
+
+      if (!userProfile) {
+        return res.status(404).json({ message: 'User profile not found' });
+      }
+
+      res.status(200).json({
+        message: 'Profile retrieved successfully',
+        profile: {
+          id: userProfile.id,
+          email: userProfile.email,
+          role: userProfile.role || 'user',
+          firstName: userProfile.first_name,
+          lastName: userProfile.last_name,
+          gender: userProfile.gender,
+          weight: userProfile.weight_kg,
+          height: userProfile.height_cm,
+          currentBalance: userProfile.current_balance || 0
+        }
+      });
+    } catch (error) {
+      console.error('Get profile error:', error);
       res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   }

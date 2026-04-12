@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'pages/sign_in_page.dart';
+import 'home_page.dart';
+import 'services/auth_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -10,11 +12,16 @@ void main() {
       statusBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(const MyApp());
+
+  final authService = AuthService();
+  final isLoggedIn = await authService.isLoggedIn();
+
+  runApp(MyApp(isLoggedIn: isLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  const MyApp({super.key, required this.isLoggedIn});
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +36,8 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Roboto',
       ),
-      home: const SignInPage(),
+      // Named route '/' always points to SignInPage (used after logout)
+      home: isLoggedIn ? const HomePage() : const SignInPage(),
     );
   }
 }

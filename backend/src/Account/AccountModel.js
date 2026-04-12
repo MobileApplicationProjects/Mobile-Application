@@ -26,11 +26,11 @@ class AccountModel {
         VALUES (?, ?, ?, ?, ?, ?)
       `;
       await connection.execute(profileQuery, [
-        id, 
-        first_name, 
-        last_name, 
-        weight_kg || null, 
-        height_cm || null, 
+        id,
+        first_name,
+        last_name,
+        weight_kg || null,
+        height_cm || null,
         formattedGender
       ]);
 
@@ -49,14 +49,26 @@ class AccountModel {
   }
 
   static async findByEmail(email) {
-    // Select from both tables for full user info
     const query = `
-      SELECT u.id, u.email, u.password_hash, p.first_name, p.last_name, p.gender, p.weight_kg, p.height_cm
+      SELECT u.id, u.email, u.password_hash, u.role, p.first_name, p.last_name, p.gender, p.weight_kg, p.height_cm, w.current_balance
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
+      LEFT JOIN user_wallets w ON u.id = w.user_id
       WHERE u.email = ? LIMIT 1
     `;
     const [rows] = await pool.execute(query, [email]);
+    return rows[0];
+  }
+
+  static async findById(id) {
+    const query = `
+      SELECT u.id, u.email, u.role, p.first_name, p.last_name, p.gender, p.weight_kg, p.height_cm, w.current_balance
+      FROM users u
+      LEFT JOIN user_profiles p ON u.id = p.user_id
+      LEFT JOIN user_wallets w ON u.id = w.user_id
+      WHERE u.id = ? LIMIT 1
+    `;
+    const [rows] = await pool.execute(query, [id]);
     return rows[0];
   }
 }

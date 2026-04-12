@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../widgets/gao_logo.dart';
+import '../home_page.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -95,7 +96,7 @@ class _SignUpPageState extends State<SignUpPage>
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('สร้างบัญชีสำเร็จ! กรุณาเข้าสู่ระบบ'),
+          content: const Text('สร้างบัญชีสำเร็จ! ยินดีต้อนรับ'),
           backgroundColor: const Color(0xFF4CAF50),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -104,8 +105,12 @@ class _SignUpPageState extends State<SignUpPage>
         ),
       );
 
-      // Navigate back to sign in
-      Navigator.pop(context);
+      // Navigate to Home Page since token is now persisted
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const HomePage()),
+        (route) => false,
+      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

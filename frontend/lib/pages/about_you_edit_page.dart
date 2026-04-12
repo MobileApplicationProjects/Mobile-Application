@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class AboutYouEditPage extends StatefulWidget {
   const AboutYouEditPage({super.key});
@@ -44,21 +45,39 @@ class _AboutYouEditPageState extends State<AboutYouEditPage> {
     }
   }
 
-  // [API MOCK] โหลดข้อมูล About you
+  // โหลดข้อมูล About you จาก API
   Future<void> _fetchAboutYouData() async {
     setState(() => _isLoading = true);
 
-    // TODO: เรียกใช้ API GET /user/about
-    await Future.delayed(const Duration(milliseconds: 500));
+    try {
+      final authService = AuthService();
+      final result = await authService.getProfile();
+      final profile = result['profile'];
 
-    setState(() {
-      _birthDate = DateTime(1999, 11, 12);
-      _gender = 'Female';
-      _heightCtrl.text = '170 cm'; // In real app, you might just store '170' and append ' cm' or parse it
-      _weightCtrl.text = '50 kg';
-      _isLoading = false;
-      _isEdited = false;
-    });
+      setState(() {
+        _birthDate = DateTime(1999, 11, 12); // birthDate not in API yet
+        
+        // Map backend gender or fallback
+        final String fetchedGender = profile['gender']?.toString() ?? 'Other';
+        if (_genderOptions.contains(fetchedGender)) {
+          _gender = fetchedGender;
+        } else {
+          _gender = 'Other';
+        }
+
+        _heightCtrl.text = '${profile['height'] ?? 0} cm';
+        _weightCtrl.text = '${profile['weight'] ?? 0} kg';
+        
+        _isLoading = false;
+        _isEdited = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   // [API MOCK] บันทึกข้อมูล About you

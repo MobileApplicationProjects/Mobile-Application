@@ -65,8 +65,6 @@ class _SignInPageState extends State<SignInPage>
 
       if (!mounted) return;
 
-      // TODO: Save token, navigate to home page
-      // await SecureStorage.saveToken(result['token']);
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const HomePage()),

@@ -3,6 +3,11 @@ import 'profile_edit_page.dart';
 import 'about_you_edit_page.dart';
 import 'sign_in_page.dart';
 import '../services/auth_service.dart';
+import 'notification_settings_page.dart';
+import 'data_sync_page.dart';
+import 'privacy_control_page.dart';
+import 'privacy_policy_page.dart';
+import 'terms_of_service_page.dart';
 
 class MenuItem {
   final String title;
@@ -89,15 +94,40 @@ class _SettingsPageState extends State<SettingsPage> {
               }),
             ]),
             _buildMenuGroup([
-              MenuItem(title: 'Health Apps', onTap: () {}),
-              MenuItem(title: 'Push Notifications', onTap: () {}),
+              MenuItem(title: 'Health Apps', onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const DataSyncPage()),
+                );
+              }),
+              MenuItem(title: 'Push Notifications', onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NotificationSettingsPage()),
+                );
+              }),
             ]),
             _buildMenuGroup([
-              MenuItem(title: 'Privacy Controls', onTap: () {}),
+              MenuItem(title: 'Privacy Controls', onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PrivacyControlPage()),
+                );
+              }),
             ]),
             _buildMenuGroup([
-              MenuItem(title: 'Terms of Service', onTap: () {}),
-              MenuItem(title: 'Privacy Policy', onTap: () {}),
+              MenuItem(title: 'Terms of Service', onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const TermsOfServicePage()),
+                );
+              }),
+              MenuItem(title: 'Privacy Policy', onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
+                );
+              }),
             ]),
             _buildMenuGroup([
               MenuItem(

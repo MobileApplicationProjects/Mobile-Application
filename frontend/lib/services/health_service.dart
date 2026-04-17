@@ -3,6 +3,7 @@ import 'package:health/health.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_service.dart';
 import '../utils/api_constants.dart';
 
@@ -83,6 +84,13 @@ class HealthService {
   /// Pushes today's metrics to the backend
   Future<void> syncToday() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final isSyncEnabled = prefs.getBool('data_sync_enabled') ?? false;
+      if (!isSyncEnabled) {
+        print('Sync aborted: Data sync is explicitly disabled by the user in settings.');
+        return;
+      }
+
       final metrics = await fetchTodayMetrics();
       final token = await _authService.getToken();
       if (token == null) return;
@@ -156,6 +164,30 @@ class HealthService {
     } catch (e) {
       print('Fetch yearly failed: $e');
       return {};
+    }
+  }
+
+  /// Fetches current streak
+  Future<int> fetchStreak() async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) return 0;
+
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.healthStreakEndpoint}'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['streak'] ?? 0;
+      }
+      return 0;
+    } catch (e) {
+      print('Fetch streak failed: $e');
+      return 0;
     }
   }
 }

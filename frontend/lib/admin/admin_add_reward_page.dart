@@ -56,7 +56,10 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('ไม่สามารถเลือกรูปได้: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('ไม่สามารถเลือกรูปได้: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -86,20 +89,36 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
               const SizedBox(height: 16),
               const Text(
                 'เลือกรูปจาก',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(Icons.photo_library_rounded, color: Colors.white),
-                title: const Text('คลังรูปภาพ', style: TextStyle(color: Colors.white)),
+                leading: const Icon(
+                  Icons.photo_library_rounded,
+                  color: Colors.white,
+                ),
+                title: const Text(
+                  'คลังรูปภาพ',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImage(ImageSource.gallery);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.camera_alt_rounded, color: Colors.white),
-                title: const Text('กล้อง', style: TextStyle(color: Colors.white)),
+                leading: const Icon(
+                  Icons.camera_alt_rounded,
+                  color: Colors.white,
+                ),
+                title: const Text(
+                  'กล้อง',
+                  style: TextStyle(color: Colors.white),
+                ),
                 onTap: () {
                   Navigator.pop(ctx);
                   _pickImage(ImageSource.camera);
@@ -133,7 +152,9 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
         description: _descriptionCtrl.text.trim(),
         costInTokens: int.parse(_costCtrl.text.trim()),
         totalStock: int.tryParse(_stockCtrl.text.trim()) ?? 0,
-        expiryDate: _expiryCtrl.text.trim().isEmpty ? null : _expiryCtrl.text.trim(),
+        expiryDate: _expiryCtrl.text.trim().isEmpty
+            ? null
+            : _expiryCtrl.text.trim(),
         imageUrl: imageUrl,
         isDonation: _isDonation,
       );
@@ -154,7 +175,10 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('❌ เกิดข้อผิดพลาด: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('❌ เกิดข้อผิดพลาด: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -175,7 +199,11 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
         ),
         title: const Text(
           'Admin: เพิ่มของรางวัล',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         centerTitle: true,
       ),
@@ -190,7 +218,10 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
               children: [
                 // Admin Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
                   margin: const EdgeInsets.only(bottom: 24),
                   decoration: BoxDecoration(
                     color: Colors.red[900]!.withOpacity(0.4),
@@ -199,11 +230,19 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.admin_panel_settings, color: Colors.red[300], size: 18),
+                      Icon(
+                        Icons.admin_panel_settings,
+                        color: Colors.red[300],
+                        size: 18,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Admin Mode — ผู้ใช้ทั่วไปจะมองไม่เห็นหน้านี้',
-                        style: TextStyle(color: Colors.red[300], fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: Colors.red[300],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
@@ -221,7 +260,9 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                       color: Colors.white.withOpacity(0.06),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                        color: _selectedImage != null ? Colors.red[600]! : Colors.grey[700]!,
+                        color: _selectedImage != null
+                            ? Colors.red[600]!
+                            : Colors.grey[700]!,
                         width: 1.5,
                       ),
                     ),
@@ -246,7 +287,11 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                                         color: Colors.black54,
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                      child: const Icon(
+                                        Icons.close,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -254,7 +299,10 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                                   bottom: 8,
                                   right: 8,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: Colors.black54,
                                       borderRadius: BorderRadius.circular(12),
@@ -262,9 +310,19 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                                     child: const Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.edit, color: Colors.white, size: 12),
+                                        Icon(
+                                          Icons.edit,
+                                          color: Colors.white,
+                                          size: 12,
+                                        ),
                                         SizedBox(width: 4),
-                                        Text('เปลี่ยนรูป', style: TextStyle(color: Colors.white, fontSize: 11)),
+                                        Text(
+                                          'เปลี่ยนรูป',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -275,16 +333,26 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                         : Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.add_photo_alternate_rounded, color: Colors.grey[500], size: 48),
+                              Icon(
+                                Icons.add_photo_alternate_rounded,
+                                color: Colors.grey[500],
+                                size: 48,
+                              ),
                               const SizedBox(height: 10),
                               Text(
                                 'แตะเพื่อเลือกรูป',
-                                style: TextStyle(color: Colors.grey[500], fontWeight: FontWeight.w600),
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'รองรับ JPEG, PNG, WebP (สูงสุด 5 MB)',
-                                style: TextStyle(color: Colors.grey[700], fontSize: 11),
+                                style: TextStyle(
+                                  color: Colors.grey[700],
+                                  fontSize: 11,
+                                ),
                               ),
                             ],
                           ),
@@ -299,7 +367,8 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                   label: 'ชื่อร้าน / พาร์ทเนอร์',
                   hint: 'เช่น Yoguruto Shop',
                   icon: Icons.store_rounded,
-                  validator: (v) => v == null || v.isEmpty ? 'กรุณาใส่ชื่อร้านค้า' : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'กรุณาใส่ชื่อร้านค้า' : null,
                 ),
 
                 const SizedBox(height: 24),
@@ -310,7 +379,8 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                   label: 'ชื่อของรางวัล',
                   hint: 'เช่น ส่วนลด 20 บาท',
                   icon: Icons.card_giftcard_rounded,
-                  validator: (v) => v == null || v.isEmpty ? 'กรุณาใส่ชื่อของรางวัล' : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? 'กรุณาใส่ชื่อของรางวัล' : null,
                 ),
                 const SizedBox(height: 12),
                 _buildTextField(
@@ -370,12 +440,19 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.volunteer_activism_rounded, color: Colors.green[400], size: 22),
+                      Icon(
+                        Icons.volunteer_activism_rounded,
+                        color: Colors.green[400],
+                        size: 22,
+                      ),
                       const SizedBox(width: 12),
                       const Expanded(
                         child: Text(
                           'เป็นรายการบริจาค (Donation)',
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       Switch(
@@ -393,11 +470,15 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                 SizedBox(
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: (_isSubmitting || _isUploadingImage) ? null : _submit,
+                    onPressed: (_isSubmitting || _isUploadingImage)
+                        ? null
+                        : _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red[700],
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       elevation: 0,
                     ),
                     child: (_isSubmitting || _isUploadingImage)
@@ -407,18 +488,28 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
                               const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                _isUploadingImage ? 'กำลังอัพโหลดรูป...' : 'กำลังบันทึก...',
-                                style: const TextStyle(fontWeight: FontWeight.w700),
+                                _isUploadingImage
+                                    ? 'กำลังอัพโหลดรูป...'
+                                    : 'กำลังบันทึก...',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ],
                           )
                         : const Text(
                             'เพิ่มของรางวัล',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
                           ),
                   ),
                 ),
@@ -466,7 +557,10 @@ class _AdminAddRewardPageState extends State<AdminAddRewardPage> {
         prefixIcon: Icon(icon, color: Colors.grey[500], size: 20),
         filled: true,
         fillColor: Colors.white.withOpacity(0.08),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: Colors.red[700]!, width: 1.5),

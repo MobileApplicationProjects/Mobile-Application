@@ -1,6 +1,13 @@
-
-
 class ApiConstants {
+  // ============================================================
+  // ⚡ เปลี่ยนเป็น true เมื่อ Deploy ขึ้น Render แล้ว
+  // ⚡ เปลี่ยนเป็น false เมื่อต้องการทดสอบกับเครื่องตัวเอง
+  // ============================================================
+  static const bool _useProduction = false;
+
+  // 👇 ใส่ URL ที่ได้จาก Render ตรงนี้ (ไม่ต้องมี /api ต่อท้าย)
+  static const String _productionHost = 'https://gao-api.onrender.com';
+
   static String get baseUrl {
     // Use Render hosted backend for all platforms
     return 'https://gao-api.onrender.com/api';
@@ -17,6 +24,9 @@ class ApiConstants {
   // Challenges endpoints
   static const String challengesEndpoint = '/challenges';
 
+  // Rooms endpoints
+  static const String roomsEndpoint = '/rooms';
+
   // Upload endpoints
   static const String uploadImageEndpoint = '/uploads/image';
 
@@ -24,4 +34,5 @@ class ApiConstants {
   static const String healthSyncEndpoint = '/health/sync';
   static const String healthMetricsEndpoint = '/health/metrics';
   static const String healthYearlyMetricsEndpoint = '/health/metrics/yearly';
+  static const String healthStreakEndpoint = '/health/metrics/streak';
 }

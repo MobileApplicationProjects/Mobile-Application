@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DataSyncPage extends StatefulWidget {
   const DataSyncPage({Key? key}) : super(key: key);
@@ -9,6 +10,27 @@ class DataSyncPage extends StatefulWidget {
 
 class _DataSyncPageState extends State<DataSyncPage> {
   bool _isSyncEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isSyncEnabled = prefs.getBool('data_sync_enabled') ?? false;
+    });
+  }
+
+  Future<void> _saveSettings(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('data_sync_enabled', value);
+    setState(() {
+      _isSyncEnabled = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,9 +80,7 @@ class _DataSyncPageState extends State<DataSyncPage> {
                 Switch.adaptive(
                   value: _isSyncEnabled,
                   onChanged: (bool value) {
-                    setState(() {
-                      _isSyncEnabled = value;
-                    });
+                    _saveSettings(value);
                   },
                   activeColor: Theme.of(context).primaryColor,
                   inactiveThumbColor: Colors.white,

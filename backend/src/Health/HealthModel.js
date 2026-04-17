@@ -110,6 +110,58 @@ class HealthModel {
     });
     return result;
   }
+
+  static async getStreak(userId) {
+    const query = `
+      SELECT date
+      FROM health_data
+      WHERE user_id = ? AND steps >= 3000
+      ORDER BY date DESC
+    `;
+    const [rows] = await pool.execute(query, [userId]);
+    
+    if (rows.length === 0) return 0;
+
+    const today = new Date();
+    // Normalize to timezone offset to avoidUTC offset bugs if running locally
+    // Actually, simple strings are safer since SQL date behaves oddly in JS
+    const toDateString = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    };
+
+    const todayDate = new Date();
+    
+    const yesterdayDate = new Date(todayDate);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+
+    const activeDatesStr = rows.map(r => {
+      const d = new Date(r.date);
+      return toDateString(d);
+    });
+
+    let currentDateToCheck = todayDate;
+    let currentDateStr = toDateString(currentDateToCheck);
+    
+    if (!activeDatesStr.includes(currentDateStr)) {
+      currentDateToCheck = yesterdayDate;
+      currentDateStr = toDateString(currentDateToCheck);
+      if (!activeDatesStr.includes(currentDateStr)) {
+         return 0;
+      }
+    }
+
+    let streak = 0;
+    while (activeDatesStr.includes(currentDateStr)) {
+      streak++;
+      currentDateToCheck.setDate(currentDateToCheck.getDate() - 1);
+      currentDateStr = toDateString(currentDateToCheck);
+    }
+    
+    return streak;
+  }
 }
 
 module.exports = HealthModel;

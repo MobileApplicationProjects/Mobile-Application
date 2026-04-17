@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({Key? key}) : super(key: key);
@@ -12,6 +13,26 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
   bool _dailyChallengeReminder = false;
   bool _goalAchieved = false;
   bool _leaderBoard = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _dailyChallengeReminder = prefs.getBool('notif_daily_challenge') ?? false;
+      _goalAchieved = prefs.getBool('notif_goal_achieved') ?? false;
+      _leaderBoard = prefs.getBool('notif_leaderboard') ?? false;
+    });
+  }
+
+  Future<void> _saveSetting(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
 
   Widget _buildNotificationItem(
     String title,
@@ -80,17 +101,20 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
               setState(() {
                 _dailyChallengeReminder = val;
               });
+              _saveSetting('notif_daily_challenge', val);
             },
           ),
           _buildNotificationItem('Goal Achieved', _goalAchieved, (val) {
             setState(() {
               _goalAchieved = val;
             });
+            _saveSetting('notif_goal_achieved', val);
           }),
           _buildNotificationItem('Leader Board', _leaderBoard, (val) {
             setState(() {
               _leaderBoard = val;
             });
+            _saveSetting('notif_leaderboard', val);
           }),
         ],
       ),

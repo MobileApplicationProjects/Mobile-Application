@@ -55,7 +55,11 @@ class _AboutYouEditPageState extends State<AboutYouEditPage> {
       final profile = result['profile'];
 
       setState(() {
-        _birthDate = DateTime(1999, 11, 12); // birthDate not in API yet
+        if (profile['birthDate'] != null) {
+          _birthDate = DateTime.tryParse(profile['birthDate'].toString());
+        } else {
+          _birthDate = null;
+        }
         
         // Map backend gender or fallback
         final String fetchedGender = profile['gender']?.toString() ?? 'Other';
@@ -80,28 +84,39 @@ class _AboutYouEditPageState extends State<AboutYouEditPage> {
     }
   }
 
-  // [API MOCK] บันทึกข้อมูล About you
+  // บันทึกข้อมูล About you ลง Database
   Future<void> _saveAboutYou() async {
     setState(() => _isLoading = true);
 
-    // TODO: เรียกใช้ API PUT 
-    // final body = {
-    //    'birthDate': _birthDate?.toIso8601String(),
-    //    'gender': _gender,
-    //    'height': _heightCtrl.text,
-    //    'weight': _weightCtrl.text,
-    // }
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      final body = {
+        'birthDate': _birthDate?.toIso8601String().split('T')[0],
+        'gender': _gender,
+        'height': double.tryParse(_heightCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')),
+        'weight': double.tryParse(_weightCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '')),
+      };
+      
+      await AuthService().updateProfile(body);
 
-    setState(() {
-      _isLoading = false;
-      _isEdited = false;
-    });
+      setState(() {
+        _isLoading = false;
+        _isEdited = false;
+      });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('About you updated successfully!')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('About you updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update About you: $e')),
+        );
+      }
     }
   }
 

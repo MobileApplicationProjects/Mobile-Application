@@ -263,7 +263,7 @@ class _ChallengePageState extends State<ChallengePage> {
               ),
               child: ClipOval(
                 child: Image.asset(
-                  'assets/images/target_challenge.png',
+                  'assets/images/target.png',
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Icon(Icons.my_location_rounded, size: 28, color: Colors.red[400]),
                 ),

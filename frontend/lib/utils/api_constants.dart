@@ -1,6 +1,3 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 class ApiConstants {
   // ============================================================
   // ⚡ เปลี่ยนเป็น true เมื่อ Deploy ขึ้น Render แล้ว
@@ -9,23 +6,11 @@ class ApiConstants {
   static const bool _useProduction = false;
 
   // 👇 ใส่ URL ที่ได้จาก Render ตรงนี้ (ไม่ต้องมี /api ต่อท้าย)
-  static const String _productionHost = 'https://YOUR-APP-NAME.onrender.com';
+  static const String _productionHost = 'https://gao-api.onrender.com';
 
   static String get baseUrl {
-    // Production mode: ใช้ URL ของ Render
-    if (_useProduction) {
-      return '$_productionHost/api';
-    }
-
-    // Development mode: ใช้ localhost ตามเดิม
-    if (kIsWeb) {
-      return 'http://localhost:5000/api';
-    }
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000/api';
-    } else {
-      return 'http://localhost:5000/api'; // iOS Simulator
-    }
+    // Use Render hosted backend for all platforms
+    return 'https://gao-api.onrender.com/api';
   }
 
   // Auth endpoints

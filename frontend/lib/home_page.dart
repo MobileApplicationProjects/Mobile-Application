@@ -7,6 +7,7 @@ import 'pages/challenge_page.dart';
 import 'services/auth_service.dart';
 import 'services/health_service.dart';
 import 'services/challenge_service.dart';
+import 'services/room_service.dart';
 import 'services/notification_service.dart';
 import 'widgets/profile_avatar.dart';
 
@@ -26,12 +27,22 @@ class _HomePageState extends State<HomePage> {
   int _currentBalance = 0;
   int _streakCount = 0;
   String? _avatarUrl;
+  String _userId = '';
   
   Map<String, dynamic>? _latestChallenge;
   final ChallengeService _challengeService = ChallengeService();
+  final RoomService _roomService = RoomService();
   final NotificationService _notificationService = NotificationService();
   bool _isClaiming = false;
   bool _isLoadingChallenge = true;
+
+  // Leaderboard state
+  List<dynamic> _rooms = [];
+  List<dynamic> _leaderboardData = [];
+  String _leaderboardRoomName = '';
+  int _userRank = 0;
+  int _userSteps = 0;
+  bool _isLoadingLeaderboard = true;
 
   @override
   void initState() {
@@ -40,6 +51,7 @@ class _HomePageState extends State<HomePage> {
     _loadProfile();
     _loadHealthData();
     _loadLatestChallenge();
+    _loadLeaderboardForCard();
   }
 
   Future<void> _initNotification() async {
@@ -140,6 +152,7 @@ class _HomePageState extends State<HomePage> {
           _role = result['profile']['role'] ?? 'user';
           _currentBalance = result['profile']['currentBalance'] ?? 0;
           _avatarUrl = result['profile']['avatarUrl'];
+          _userId = result['profile']['id'] ?? '';
         });
       }
     } catch (e) {
@@ -166,6 +179,7 @@ class _HomePageState extends State<HomePage> {
               _loadProfile(),
               _loadHealthData(),
               _loadLatestChallenge(),
+              _loadLeaderboardForCard(),
             ]);
           },
           child: SingleChildScrollView(
@@ -536,7 +550,88 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Future<void> _loadLeaderboardForCard() async {
+    setState(() => _isLoadingLeaderboard = true);
+    try {
+      final rooms = await _roomService.listRooms();
+      _rooms = rooms;
+
+      // Find the first accepted room
+      final acceptedRoom = rooms.firstWhere(
+        (r) => r['member_status'] == 'accepted',
+        orElse: () => null,
+      );
+
+      if (acceptedRoom != null) {
+        final data = await _roomService.getLeaderboard(acceptedRoom['id']);
+        final leaderboard = data['leaderboard'] as List<dynamic>? ?? [];
+
+        // Find the current user's rank
+        int rank = 0;
+        int steps = 0;
+        for (int i = 0; i < leaderboard.length; i++) {
+          if (leaderboard[i]['user_id'] == _userId) {
+            rank = i + 1;
+            steps = (leaderboard[i]['total_steps'] as num).toInt();
+            break;
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _leaderboardData = leaderboard;
+            _leaderboardRoomName = acceptedRoom['name'] ?? '';
+            _userRank = rank;
+            _userSteps = steps;
+            _isLoadingLeaderboard = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _leaderboardData = [];
+            _leaderboardRoomName = '';
+            _userRank = 0;
+            _userSteps = 0;
+            _isLoadingLeaderboard = false;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error loading leaderboard for card: $e');
+      if (mounted) setState(() => _isLoadingLeaderboard = false);
+    }
+  }
+
   Widget _buildLeaderboardCard() {
+    // Loading state
+    if (_isLoadingLeaderboard) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: const Center(
+          child: SizedBox(
+            height: 80,
+            child: Center(child: CircularProgressIndicator(color: Colors.black)),
+          ),
+        ),
+      );
+    }
+
+    // No rooms / no data state
+    final bool hasData = _leaderboardData.isNotEmpty;
+    final String roomLabel = _leaderboardRoomName.isNotEmpty
+        ? '($_leaderboardRoomName)'
+        : '';
+
+    // Format steps with commas
+    String formatSteps(int steps) {
+      return steps.toString().replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ',');
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -557,15 +652,20 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(width: 8),
-              const Text(
-                '(Salaya)',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+              if (roomLabel.isNotEmpty) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    roomLabel,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
+              ],
               const Spacer(),
               const Icon(
                 Icons.arrow_forward_rounded,
@@ -577,42 +677,57 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(height: 16),
           const Divider(color: Color(0xFFE0E0E0), height: 1),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              const Text(
-                '3',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+          if (!hasData)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8.0),
+              child: Text(
+                'No leaderboard data yet. Join or create a room!',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            Row(
+              children: [
+                Text(
+                  _userRank > 0 ? '$_userRank' : '-',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: Colors.grey[800],
-                child: const Icon(Icons.person, size: 20, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                '(You)',
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(width: 16),
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: Colors.grey[800],
+                  backgroundImage: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                      ? NetworkImage(_avatarUrl!)
+                      : null,
+                  child: _avatarUrl == null || _avatarUrl!.isEmpty
+                      ? const Icon(Icons.person, size: 20, color: Colors.white)
+                      : null,
                 ),
-              ),
-              const Spacer(),
-              const Text(
-                '10000 Step',
-                style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
+                const SizedBox(width: 12),
+                const Text(
+                  '(You)',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const Spacer(),
+                Text(
+                  '${formatSteps(_userSteps)} Step',
+                  style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

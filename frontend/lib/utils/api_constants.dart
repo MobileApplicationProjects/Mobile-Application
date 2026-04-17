@@ -1,16 +1,9 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
+
 
 class ApiConstants {
   static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5000/api';
-    }
-    if (Platform.isAndroid) {
-      return 'http://10.0.2.2:5000/api';
-    } else {
-      return 'http://localhost:5000/api'; // iOS Simulator
-    }
+    // Use Render hosted backend for all platforms
+    return 'https://gao-api.onrender.com/api';
   }
 
   // Auth endpoints

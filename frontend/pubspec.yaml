@@ -76,6 +76,7 @@ flutter:
     - assets/images/medal_gold.png
     - assets/images/medal_silver.png
     - assets/images/medal_bronze.png
+    - assets/images/crown.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

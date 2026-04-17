@@ -64,8 +64,8 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
         _email = profile['email'] ?? '';
         _firstNameCtrl.text = profile['firstName'] ?? '';
         _lastNameCtrl.text = profile['lastName'] ?? '';
-        _address1Ctrl.text = 'Phutthamonthon'; // Address feature not in db yet
-        _address2Ctrl.text = 'Nakhon Pathom';
+        _address1Ctrl.text = profile['address1'] ?? '';
+        _address2Ctrl.text = profile['address2'] ?? '';
         _isLoading = false;
         _isEdited = false; // reset after load
       });
@@ -78,29 +78,39 @@ class _ProfileEditPageState extends State<ProfileEditPage> {
     }
   }
 
-  // [API MOCK] บันทึกข้อมูล Profile
+  // บันทึกข้อมูล Profile ลง Database
   Future<void> _saveProfile() async {
     setState(() => _isLoading = true);
 
-    // TODO: เรียกใช้ API PUT หรือ POST นำข้อมูลไปบันทึก
-    // final body = {
-    //   'firstName': _firstNameCtrl.text,
-    //   'lastName': _lastNameCtrl.text,
-    //   'address1': _address1Ctrl.text,
-    //   'address2': _address2Ctrl.text,
-    // };
+    try {
+      final body = {
+        'firstName': _firstNameCtrl.text.trim(),
+        'lastName': _lastNameCtrl.text.trim(),
+        'address1': _address1Ctrl.text.trim(),
+        'address2': _address2Ctrl.text.trim(),
+      };
 
-    await Future.delayed(const Duration(milliseconds: 800));
+      await AuthService().updateProfile(body);
 
-    setState(() {
-      _isLoading = false;
-      _isEdited = false;
-    });
+      setState(() {
+        _isLoading = false;
+        _isEdited = false;
+      });
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile updated successfully!')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile updated successfully!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile: $e')),
+        );
+      }
     }
   }
 

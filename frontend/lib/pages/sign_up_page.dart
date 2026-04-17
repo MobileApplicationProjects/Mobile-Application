@@ -14,6 +14,7 @@ class _SignUpPageState extends State<SignUpPage>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _weightController = TextEditingController();
@@ -52,6 +53,7 @@ class _SignUpPageState extends State<SignUpPage>
   @override
   void dispose() {
     _emailController.dispose();
+    _usernameController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _weightController.dispose();
@@ -84,6 +86,7 @@ class _SignUpPageState extends State<SignUpPage>
     try {
       await _authService.signUp(
         email: _emailController.text.trim(),
+        username: _usernameController.text.trim(),
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         gender: _selectedGender!,
@@ -226,6 +229,30 @@ class _SignUpPageState extends State<SignUpPage>
                               );
                               if (!emailRegex.hasMatch(value.trim())) {
                                 return 'รูปแบบอีเมลไม่ถูกต้อง';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Username
+                          _buildLabel('Username'),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _usernameController,
+                            keyboardType: TextInputType.text,
+                            textInputAction: TextInputAction.next,
+                            style: const TextStyle(fontSize: 15),
+                            decoration: _inputDecoration(
+                              hint: 'username',
+                              icon: Icons.alternate_email,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'กรุณากรอก Username';
+                              }
+                              if (value.trim().length < 3) {
+                                return 'Username ต้องมีอย่างน้อย 3 ตัวอักษร';
                               }
                               return null;
                             },

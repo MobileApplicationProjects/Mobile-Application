@@ -1,0 +1,56 @@
+# =========================
+# BACKEND (Node.js) RULES
+# =========================
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Environment Variables
+.env
+.env.test
+.env.local
+
+# Build & Logs
+logs/
+*.log
+dist/
+
+# =========================
+# FRONTEND (Flutter) RULES
+# =========================
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+
+# Android
+**/android/.gradle
+**/android/local.properties
+**/android/**/*.keystore
+**/android/**/workspace.xml
+**/android/**/tasks.xml
+
+# iOS
+**/ios/**/*.mode1v3
+**/ios/**/*.pbxuser
+**/ios/**/*.xcuserstate
+**/ios/Flutter/.last_build_id
+**/ios/Pods/
+
+# macOS/Windows/Linux/Web Additions
+**/macos/Flutter/ephemeral/
+**/windows/flutter/ephemeral/
+**/linux/flutter/ephemeral/
+.dart_tool/
+
+# =========================
+# SYSTEM & IDE RULES
+# =========================
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db

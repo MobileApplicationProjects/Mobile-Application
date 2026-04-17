@@ -26,6 +26,9 @@ app.use('/api/challenges', challengeRoutes);
 const uploadRoutes = require('./src/Upload/UploadRoutes');
 app.use('/api/uploads', uploadRoutes);
 
+const roomRoutes = require('./src/Rooms/RoomRoutes');
+app.use('/api/rooms', roomRoutes);
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

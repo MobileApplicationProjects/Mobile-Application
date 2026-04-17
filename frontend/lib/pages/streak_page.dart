@@ -54,8 +54,8 @@ class _StreakPageState extends State<StreakPage> {
       } catch (_) {}
     });
 
-    // 4. Calculate Streak (Simplified for v1)
-    _calculateStreak(weekly);
+    // 4. Fetch real streak from backend
+    final currentStreak = await _healthService.fetchStreak();
 
     // 5. Check Admin Status
     bool isAdminUser = false;
@@ -71,6 +71,7 @@ class _StreakPageState extends State<StreakPage> {
       setState(() {
         _isAdmin = isAdminUser;
         _stepsToday = todayMetrics['steps'] ?? 0;
+        _streakCount = currentStreak;
         _weeklyData = weekly;
         _allHealthData = heatmapConverted;
         _totalActivities = heatmapConverted.values.where((s) => s >= 3000).length;
@@ -79,25 +80,7 @@ class _StreakPageState extends State<StreakPage> {
     }
   }
 
-  void _calculateStreak(List<Map<String, dynamic>> weekly) {
-    int count = 0;
-    if (_stepsToday >= 3000) count++;
-    
-    final sortedWeekly = List<Map<String, dynamic>>.from(weekly)
-      ..sort((a, b) => b['date'].compareTo(a['date']));
-    
-    for (var day in sortedWeekly) {
-      final date = day['date'] is DateTime ? day['date'] : DateTime.parse(day['date'].toString());
-      if (DateFormat('yyyy-MM-dd').format(date) == DateFormat('yyyy-MM-dd').format(DateTime.now())) continue;
-      
-      if ((day['steps'] ?? 0) >= 3000) {
-        count++;
-      } else {
-        break; 
-      }
-    }
-    _streakCount = count;
-  }
+
 
   @override
   Widget build(BuildContext context) {

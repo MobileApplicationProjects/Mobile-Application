@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PrivacyControlPage extends StatefulWidget {
   const PrivacyControlPage({Key? key}) : super(key: key);
@@ -11,6 +12,26 @@ class _PrivacyControlPageState extends State<PrivacyControlPage> {
   bool _usageAnalytics = false;
   bool _thirdPartyServices = false;
   bool _experiencePersonalization = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _usageAnalytics = prefs.getBool('privacy_usage_analytics') ?? false;
+      _thirdPartyServices = prefs.getBool('privacy_third_party') ?? false;
+      _experiencePersonalization = prefs.getBool('privacy_personalization') ?? false;
+    });
+  }
+
+  Future<void> _saveSetting(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
 
   Widget _buildControlItem(String title, bool value, ValueChanged<bool> onChanged) {
     return Container(
@@ -70,16 +91,19 @@ class _PrivacyControlPageState extends State<PrivacyControlPage> {
             setState(() {
               _usageAnalytics = val;
             });
+            _saveSetting('privacy_usage_analytics', val);
           }),
           _buildControlItem('Third-Party Services', _thirdPartyServices, (val) {
             setState(() {
               _thirdPartyServices = val;
             });
+            _saveSetting('privacy_third_party', val);
           }),
           _buildControlItem('Experience Personalization', _experiencePersonalization, (val) {
             setState(() {
               _experiencePersonalization = val;
             });
+            _saveSetting('privacy_personalization', val);
           }),
         ],
       ),

@@ -2,17 +2,25 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
 const verifyToken = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// Ensure uploads directory exists
+// Configure Cloudinary using the keys from your .env
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Ensure uploads directory exists for temporary caching
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Multer config - store on disk with unique filename
+// Multer config - temporarily store on disk
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -40,22 +48,35 @@ const upload = multer({
 });
 
 // POST /api/uploads/image
-// Requires auth. Returns the public URL of the uploaded image.
-router.post('/image', verifyToken, upload.single('image'), (req, res) => {
+// Requires auth. Returns the secure URL from Cloudinary.
+router.post('/image', verifyToken, upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No image file provided' });
   }
 
-  // Build the public URL: http://<host>:<port>/uploads/<filename>
-  const protocol = req.protocol;
-  const host = req.get('host');
-  const imageUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+  try {
+    // 1. Send the file from local uploads folder up to Cloudinary
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: 'gao_app_profiles',
+    });
 
-  return res.status(200).json({
-    message: 'Image uploaded successfully',
-    url: imageUrl,
-    filename: req.file.filename,
-  });
+    // 2. We no longer need the local file, clean it up!
+    fs.unlinkSync(req.file.path);
+
+    // 3. Inform the frontend of the permanent URL
+    return res.status(200).json({
+      message: 'Image uploaded to Cloudinary successfully',
+      url: result.secure_url,
+      filename: result.public_id,
+    });
+  } catch (error) {
+    console.error('Cloudinary upload err:', error);
+    // Cleanup local cache on error just in case
+    if (fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    return res.status(500).json({ message: 'Failed to upload via Cloudinary', error: error.message });
+  }
 });
 
 module.exports = router;

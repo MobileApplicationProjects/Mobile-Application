@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'services/health_service.dart';
 import 'services/challenge_service.dart';
 import 'services/notification_service.dart';
+import 'widgets/profile_avatar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,6 +24,8 @@ class _HomePageState extends State<HomePage> {
   double _calories = 0.0;
   double _distanceKm = 0.0;
   int _currentBalance = 0;
+  int _streakCount = 0;
+  String? _avatarUrl;
   
   Map<String, dynamic>? _latestChallenge;
   final ChallengeService _challengeService = ChallengeService();
@@ -46,6 +49,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadHealthData() async {
     final healthData = await HealthService().fetchTodayMetrics();
+    final streak = await HealthService().fetchStreak();
     if (mounted) {
       setState(() {
         _steps = healthData['steps'] ?? 0;
@@ -54,6 +58,7 @@ class _HomePageState extends State<HomePage> {
         // Convert distance from meters to km and format to 1 decimal place
         double meters = (healthData['distance'] ?? 0.0).toDouble();
         _distanceKm = meters / 1000.0;
+        _streakCount = streak;
       });
       // Detect completion after health data loaded
       _checkChallengeCompletion();
@@ -134,6 +139,7 @@ class _HomePageState extends State<HomePage> {
           _firstName = result['profile']['firstName'] ?? 'User';
           _role = result['profile']['role'] ?? 'user';
           _currentBalance = result['profile']['currentBalance'] ?? 0;
+          _avatarUrl = result['profile']['avatarUrl'];
         });
       }
     } catch (e) {
@@ -184,14 +190,10 @@ class _HomePageState extends State<HomePage> {
                   },
                 child: Row(
                   children: [
-                    CircleAvatar(
+                    ProfileAvatar(
+                      avatarUrl: _avatarUrl,
                       radius: 26,
                       backgroundColor: Colors.grey[800],
-                      child: Icon(
-                        Icons.person,
-                        size: 32,
-                        color: Colors.grey[400],
-                      ),
                     ),
                     const SizedBox(width: 12),
                     Column(
@@ -360,7 +362,7 @@ class _HomePageState extends State<HomePage> {
                       },
                       child: _buildCard(
                         imagePath: 'assets/images/fire.png',
-                        topText: '5 days',
+                        topText: '$_streakCount days',
                         bottomText: 'Streak',
                       ),
                     ),

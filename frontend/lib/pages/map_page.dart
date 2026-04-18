@@ -420,12 +420,7 @@ class _MapPageState extends State<MapPage> {
               icon: Icons.home_rounded,
               label: 'HOME',
               isActive: false,
-              onTap: () {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const HomePage()),
-                  (route) => false,
-                );
-              },
+              onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
             ),
             _buildNavItem(
               icon: Icons.location_on_rounded,

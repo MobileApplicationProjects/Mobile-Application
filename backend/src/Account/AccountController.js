@@ -137,7 +137,10 @@ class AccountController {
           address1: userProfile.address_street,
           address2: userProfile.address_district,
           avatarUrl: userProfile.avatar_url || null,
-          currentBalance: userProfile.current_balance || 0
+          currentBalance: userProfile.current_balance || 0,
+          goldTrophies: userProfile.gold_trophies || 0,
+          silverTrophies: userProfile.silver_trophies || 0,
+          bronzeTrophies: userProfile.bronze_trophies || 0
         }
       });
     } catch (error) {

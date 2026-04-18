@@ -40,9 +40,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
   }
 
   Future<void> _loadRooms() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final rooms = await _roomService.listRooms();
+      if (!mounted) return;
       setState(() {
         _rooms = rooms;
         if (_rooms.isNotEmpty && _selectedRoom == null) {
@@ -58,6 +60,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
       if (_selectedRoom != null) {
         await _loadLeaderboard(_selectedRoom['id']);
       } else {
+        if (!mounted) return;
         setState(() {
           _leaderboard = [];
           _isLoading = false;
@@ -70,9 +73,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
   }
 
   Future<void> _loadLeaderboard(String roomId) async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final data = await _roomService.getLeaderboard(roomId);
+      if (!mounted) return;
       setState(() {
         _leaderboard = data['leaderboard'] ?? [];
         _isLoading = false;
@@ -689,7 +694,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
               icon: Icons.home_rounded,
               label: 'HOME',
               isActive: false,
-              onTap: () => Navigator.pop(context),
+              onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
             ),
             _buildNavItem(
               icon: Icons.location_on_rounded,

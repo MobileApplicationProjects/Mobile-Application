@@ -50,7 +50,7 @@ class AccountModel {
 
   static async findByEmail(email) {
     const query = `
-      SELECT u.id, u.email, u.username, u.password_hash, u.role, p.first_name, p.last_name, p.gender, p.weight_kg, p.height_cm, p.avatar_url, p.birth_date, p.address_street, p.address_district, w.current_balance
+      SELECT u.id, u.email, u.username, u.password_hash, u.role, p.first_name, p.last_name, p.gender, p.weight_kg, p.height_cm, p.avatar_url, p.birth_date, p.address_street, p.address_district, p.gold_trophies, p.silver_trophies, p.bronze_trophies, w.current_balance
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
       LEFT JOIN user_wallets w ON u.id = w.user_id
@@ -70,7 +70,7 @@ class AccountModel {
 
   static async findById(id) {
     const query = `
-      SELECT u.id, u.email, u.username, u.role, p.first_name, p.last_name, p.gender, p.weight_kg, p.height_cm, p.avatar_url, p.birth_date, p.address_street, p.address_district, w.current_balance
+      SELECT u.id, u.email, u.username, u.role, p.first_name, p.last_name, p.gender, p.weight_kg, p.height_cm, p.avatar_url, p.birth_date, p.address_street, p.address_district, p.gold_trophies, p.silver_trophies, p.bronze_trophies, w.current_balance
       FROM users u
       LEFT JOIN user_profiles p ON u.id = p.user_id
       LEFT JOIN user_wallets w ON u.id = w.user_id

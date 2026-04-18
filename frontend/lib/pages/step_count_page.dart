@@ -370,49 +370,17 @@ class _StepCountPageState extends State<StepCountPage> {
                     : SizedBox(
                         height: 160,
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: _chartData
-                                    .map(
-                                      (data) => _buildBar(
-                                        data.label,
-                                        data.percent,
-                                        isHighlight: data.isHighlight,
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Container(
-                              width: 3,
-                              height: double.infinity,
-                              color: Colors.grey[200],
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  _currentGoal.toString(),
-                                  style: const TextStyle(color: Colors.grey, fontSize: 10),
+                          children: _chartData
+                              .map(
+                                (data) => _buildBar(
+                                  data.label,
+                                  data.percent,
+                                  isHighlight: data.isHighlight,
                                 ),
-                                Text(
-                                  (_currentGoal ~/ 2).toString(),
-                                  style: const TextStyle(color: Colors.grey, fontSize: 10),
-                                ),
-                                const Text(
-                                  '0',
-                                  style: TextStyle(color: Colors.grey, fontSize: 10),
-                                ),
-                              ],
-                            ),
-                          ],
+                              )
+                              .toList(),
                         ),
                       ),
               ],
@@ -439,19 +407,38 @@ class _StepCountPageState extends State<StepCountPage> {
   }
 
   Widget _buildBar(String day, double percent, {required bool isHighlight}) {
+    // Ensure a minimum height so empty data still looks like a 0-state pill
+    final double barHeight = (130 * percent) < 4 ? 4 : (130 * percent);
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Container(
-          width: 30,
-          height: 130 * percent,
+          width: 25,
+          height: barHeight,
           decoration: BoxDecoration(
-            color: isHighlight ? Colors.orange[700] : const Color(0xFF8B0000),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            color: const Color(0xFFD32F2F), // Red bars for all
+            borderRadius: BorderRadius.circular(6),
           ),
         ),
         const SizedBox(height: 10),
-        Text(day, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+        Text(
+          day.toUpperCase(), 
+          style: TextStyle(
+            color: isHighlight ? Colors.orange[400] : Colors.grey[500], 
+            fontSize: 12,
+            fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal
+          )
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: 16,
+          height: 3,
+          decoration: BoxDecoration(
+            color: isHighlight ? Colors.orange[400] : Colors.transparent,
+            borderRadius: BorderRadius.circular(2),
+          ),
+        ),
       ],
     );
   }

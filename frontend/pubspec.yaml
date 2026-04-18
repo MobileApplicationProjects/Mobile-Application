@@ -82,6 +82,7 @@ flutter:
     - assets/images/medal_silver.png
     - assets/images/medal_bronze.png
     - assets/images/crown.png
+    - assets/images/Instagram_icon.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

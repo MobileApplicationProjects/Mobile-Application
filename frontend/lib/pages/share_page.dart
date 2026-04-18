@@ -1,9 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../services/share_service.dart';
+import '../services/health_service.dart';
+import '../services/auth_service.dart';
+import '../services/location_service.dart';
 import '../home_page.dart';
 import 'map_page.dart';
 import 'leaderboard_page.dart';
@@ -18,6 +23,8 @@ class SharePage extends StatefulWidget {
 class _SharePageState extends State<SharePage> {
   final ScreenshotController _screenshotController = ScreenshotController();
   final ShareService _shareService = ShareService();
+  final LocationService _locationService = LocationService();
+  final Completer<GoogleMapController> _mapController = Completer<GoogleMapController>();
   
   bool _isLoading = true;
   Map<String, dynamic>? _summary;
@@ -28,6 +35,9 @@ class _SharePageState extends State<SharePage> {
   double _distanceKm = 0.0;
   String _displayName = 'User';
 
+  List<LatLng> _routePoints = [];
+  LatLng? _routeCenter;
+
   @override
   void initState() {
     super.initState();
@@ -35,24 +45,61 @@ class _SharePageState extends State<SharePage> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     try {
-      final summary = await _shareService.getTodaySummary();
-      
+      // Use HealthService (same as HomePage) to get real-time device data
+      final healthService = HealthService();
+      final authService = AuthService();
+
+      final results = await Future.wait([
+        healthService.fetchTodayMetrics(),
+        healthService.fetchGoal().then((g) => {'goal': g}),
+        authService.getProfile(),
+        _locationService.getLatestSession().catchError((_) => null),
+      ]);
+
+      final healthData = results[0] as Map<String, dynamic>;
+      final goal = (results[1] as Map<String, dynamic>)['goal'] as int;
+      final profileResult = results[2] as Map<String, dynamic>;
+      final session = results[3] as Map<String, dynamic>?;
+      final profile = profileResult['profile'];
+
+      // Parse route points from latest session
+      List<LatLng> points = [];
+      if (session != null && session['points'] != null) {
+        final rawPoints = session['points'] as List<dynamic>;
+        points = rawPoints
+          .map((p) => LatLng(
+            (p['lat'] as num).toDouble(),
+            (p['lng'] as num).toDouble(),
+          ))
+          .toList();
+      }
+
+      // Compute center of route
+      LatLng? center;
+      if (points.isNotEmpty) {
+        double avgLat = points.map((p) => p.latitude).reduce((a, b) => a + b) / points.length;
+        double avgLng = points.map((p) => p.longitude).reduce((a, b) => a + b) / points.length;
+        center = LatLng(avgLat, avgLng);
+      }
+
       if (mounted) {
         setState(() {
-          _summary = summary;
-          _steps = summary['steps'] ?? 0;
-          _goal = summary['stepGoalDaily'] ?? 5000;
-          _calories = (summary['calories'] ?? 0.0).toDouble();
-          _distanceKm = (summary['distanceKm'] ?? 0.0).toDouble();
-          
-          final profile = summary['profile'] as Map<String, dynamic>?;
+          _steps = healthData['steps'] ?? 0;
+          _goal = goal;
+          _calories = (healthData['calories'] ?? 0.0).toDouble();
+          double meters = (healthData['distance'] ?? 0.0).toDouble();
+          _distanceKm = meters / 1000.0;
+          _routePoints = points;
+          _routeCenter = center;
+
           if (profile != null) {
             final first = profile['firstName'] ?? '';
             final last = profile['lastName'] ?? '';
             _displayName = first.isNotEmpty ? '$first $last' : (profile['username'] ?? 'User');
           }
-          
+
           _isLoading = false;
         });
       }
@@ -66,7 +113,7 @@ class _SharePageState extends State<SharePage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) {
+      builder: (sheetContext) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
           decoration: const BoxDecoration(
@@ -86,10 +133,40 @@ class _SharePageState extends State<SharePage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildShareIcon(icon: Icons.camera_alt, label: 'Instagram\nStory', onTap: () => _handleShare('instagram')),
-                  _buildShareIcon(icon: Icons.download, label: 'Save', onTap: () => _handleShare('save')),
-                  _buildShareIcon(icon: Icons.link, label: 'Copy Link', onTap: () => _handleShare('copy_link')),
-                  _buildShareIcon(icon: Icons.more_horiz, label: 'More', onTap: () => _handleShare('more')),
+                  // Instagram with image icon
+                  GestureDetector(
+                    onTap: () => _handleShare(sheetContext, 'instagram'),
+                    child: SizedBox(
+                      width: 70,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.asset('assets/images/Instagram_icon.png', width: 28, height: 28),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Instagram',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  _buildShareIcon(icon: Icons.download, label: 'Save', onTap: () => _handleShare(sheetContext, 'save')),
+                  _buildShareIcon(icon: Icons.link, label: 'Copy Link', onTap: () => _handleShare(sheetContext, 'copy_link')),
+                  _buildShareIcon(icon: Icons.more_horiz, label: 'More', onTap: () => _handleShare(sheetContext, 'more')),
                 ],
               ),
               const SizedBox(height: 20),
@@ -103,37 +180,43 @@ class _SharePageState extends State<SharePage> {
   Widget _buildShareIcon({required IconData icon, required String label, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+      child: SizedBox(
+        width: 70,
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Center(child: Icon(icon, color: Colors.black, size: 28)),
             ),
-            child: Icon(icon, color: Colors.black, size: 28),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 10),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontSize: 10),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _handleShare(String platform) async {
-    Navigator.pop(context); // Close bottom sheet
+  Future<void> _handleShare(BuildContext sheetContext, String platform) async {
+    Navigator.pop(sheetContext); // Close bottom sheet
     
     // Log the share event
     await _shareService.logShare(platform, _summary);
 
+    if (!mounted) return;
     await _shareImage();
   }
 
   Future<void> _shareImage() async {
+    if (!mounted) return;
     // Show loading
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Preparing image...')),
@@ -141,6 +224,8 @@ class _SharePageState extends State<SharePage> {
 
     try {
       final directory = await getApplicationDocumentsDirectory();
+      
+      if (!mounted) return;
       final imagePath = await _screenshotController.captureAndSave(
         directory.path,
         fileName: "share_summary.png",
@@ -239,10 +324,10 @@ class _SharePageState extends State<SharePage> {
 
   Widget _buildShareCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 30),
-      padding: const EdgeInsets.all(24),
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFF0F0F0F),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
@@ -251,78 +336,126 @@ class _SharePageState extends State<SharePage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Today',
                 style: TextStyle(
-                  color: Colors.black,
-                  fontSize: 22,
+                  color: Colors.red[700],
+                  fontSize: 25,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               Text(
                 _displayName,
                 style: TextStyle(
-                  color: Colors.grey[600],
+                  color: Colors.grey[500],
                   fontSize: 14,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildMetricRing(
-                progress: (_steps / _goal).clamp(0.0, 1.0),
-                iconPath: 'assets/images/target.png',
+              _buildActivityRing(
+                value: _goal > 0 ? (_steps / _goal).clamp(0.0, 1.0) : 0.0,
+                icon: Icons.directions_run_rounded,
+                iconColor: Colors.red[400]!,
                 valueText: '$_steps',
-                labelText: 'Step',
+                titleText: 'Step',
+                subtitleText: 'Goal $_goal',
+                ringColor: Colors.orange[800]!,
               ),
-              _buildMetricRing(
-                progress: (_calories/1000).clamp(0.0, 1.0),
-                iconPath: 'assets/images/fire.png',
+              _buildActivityRing(
+                value: (_calories / 500.0).clamp(0.0, 1.0),
+                icon: Icons.local_fire_department_rounded,
+                iconColor: Colors.red[400]!,
                 valueText: '${_calories.toStringAsFixed(0)} kcal',
-                labelText: 'Calories',
+                titleText: 'Calories',
+                ringColor: Colors.orange[800]!,
               ),
-              _buildMetricRing(
-                progress: (_distanceKm/10).clamp(0.0, 1.0),
-                iconPath: 'assets/images/location.png',
-                fallbackIcon: Icons.directions_run_rounded,
-                valueText: '${_distanceKm.toStringAsFixed(2)} km',
-                labelText: 'Distance',
+              _buildActivityRing(
+                value: (_distanceKm / 5.0).clamp(0.0, 1.0),
+                icon: Icons.arrow_forward_rounded,
+                iconColor: Colors.red[400]!,
+                valueText: '${_distanceKm.toStringAsFixed(1)} km',
+                titleText: 'Distance',
+                ringColor: Colors.orange[800]!,
               ),
             ],
           ),
-          const SizedBox(height: 30),
-          // Map preview area (static box for screenshot)
+          const SizedBox(height: 24),
+          // Route Map
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
-            child: Container(
-              height: 250,
-              decoration: const BoxDecoration(
-                color: Color(0xFF222222),
-              ),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // We simulate a dark map background
-                  Image.asset(
-                    'assets/images/chart.png', // Replace with a generic map screenshot if preferred
-                    fit: BoxFit.cover,
-                    opacity: const AlwaysStoppedAnimation(0.2),
-                    errorBuilder: (_, __, ___) => const ColoredBox(color: Color(0xFF2C2C2C)),
-                  ),
-                  const Center(
-                    child: Icon(Icons.map, color: Colors.white24, size: 80),
-                  ),
-                  Positioned(
-                    bottom: 15,
-                    right: 15,
-                    child: Icon(Icons.my_location, color: Colors.red[400], size: 30),
+            child: SizedBox(
+              height: 220,
+              child: _routePoints.isEmpty
+                ? Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.map_outlined, color: Colors.grey[700], size: 48),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No route recorded yet',
+                          style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        ),
+                      ],
+                    ),
                   )
-                ],
-              ),
+                : GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: _routeCenter ?? const LatLng(13.736717, 100.523186),
+                      zoom: 15,
+                    ),
+                    onMapCreated: (controller) {
+                      if (!_mapController.isCompleted) {
+                        _mapController.complete(controller);
+                      }
+                      // Fit bounds to route
+                      if (_routePoints.length > 1) {
+                        final bounds = _boundsFromPoints(_routePoints);
+                        controller.animateCamera(
+                          CameraUpdate.newLatLngBounds(bounds, 40),
+                        );
+                      }
+                    },
+                    polylines: {
+                      Polyline(
+                        polylineId: const PolylineId('route'),
+                        points: _routePoints,
+                        color: Colors.orange,
+                        width: 5,
+                        startCap: Cap.roundCap,
+                        endCap: Cap.roundCap,
+                      ),
+                    },
+                    markers: _routePoints.isEmpty ? {} : {
+                      Marker(
+                        markerId: const MarkerId('start'),
+                        position: _routePoints.first,
+                        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+                      ),
+                      Marker(
+                        markerId: const MarkerId('end'),
+                        position: _routePoints.last,
+                        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+                      ),
+                    },
+                    myLocationEnabled: false,
+                    zoomControlsEnabled: false,
+                    scrollGesturesEnabled: false,
+                    rotateGesturesEnabled: false,
+                    tiltGesturesEnabled: false,
+                    liteModeEnabled: true,
+                  ),
             ),
           ),
         ],
@@ -330,56 +463,72 @@ class _SharePageState extends State<SharePage> {
     );
   }
 
-  Widget _buildMetricRing({
-    required double progress,
-    required String iconPath,
-    IconData? fallbackIcon,
+  LatLngBounds _boundsFromPoints(List<LatLng> points) {
+    double minLat = points.map((p) => p.latitude).reduce((a, b) => a < b ? a : b);
+    double maxLat = points.map((p) => p.latitude).reduce((a, b) => a > b ? a : b);
+    double minLng = points.map((p) => p.longitude).reduce((a, b) => a < b ? a : b);
+    double maxLng = points.map((p) => p.longitude).reduce((a, b) => a > b ? a : b);
+    return LatLngBounds(
+      southwest: LatLng(minLat, minLng),
+      northeast: LatLng(maxLat, maxLng),
+    );
+  }
+
+  Widget _buildActivityRing({
+    required double value,
+    required IconData icon,
+    required Color iconColor,
     required String valueText,
-    required String labelText,
+    required String titleText,
+    String? subtitleText,
+    required Color ringColor,
   }) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 50,
-          height: 50,
+          height: 60,
+          width: 60,
           child: Stack(
-            fit: StackFit.expand,
+            alignment: Alignment.center,
             children: [
-              CircularProgressIndicator(
-                value: 1.0,
-                strokeWidth: 4,
-                color: Colors.grey[200],
+              SizedBox(
+                height: 60,
+                width: 60,
+                child: CircularProgressIndicator(
+                  value: value,
+                  strokeWidth: 10,
+                  backgroundColor: ringColor.withAlpha(30),
+                  valueColor: AlwaysStoppedAnimation<Color>(ringColor),
+                  strokeCap: StrokeCap.round,
+                ),
               ),
-              CircularProgressIndicator(
-                value: progress,
-                strokeWidth: 4,
-                color: Colors.red[700],
-                strokeCap: StrokeCap.round,
-              ),
-              Center(
-                child: fallbackIcon != null
-                    ? Icon(fallbackIcon, size: 20, color: Colors.red[700])
-                    : Image.asset(
-                        iconPath,
-                        width: 20,
-                        height: 20,
-                        color: Colors.red[700],
-                        errorBuilder: (_, __, ___) => Icon(Icons.accessibility_new, size: 20, color: Colors.red[700]),
-                      ),
-              ),
+              Icon(icon, color: iconColor, size: 26),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Text(
           valueText,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+          ),
         ),
+        const SizedBox(height: 4),
         Text(
-          labelText,
-          style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+          titleText,
+          style: TextStyle(color: Colors.grey[500], fontSize: 13),
         ),
+        if (subtitleText != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            subtitleText,
+            style: TextStyle(color: Colors.grey[700], fontSize: 11),
+          ),
+        ] else ...[
+          const SizedBox(height: 15),
+        ],
       ],
     );
   }
@@ -396,10 +545,7 @@ class _SharePageState extends State<SharePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildNavItem(icon: Icons.home_rounded, label: 'HOME', isActive: false, onTap: () {
-             Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const HomePage()),
-                (route) => false,
-             );
+             Navigator.of(context).popUntil((route) => route.isFirst);
           }),
           _buildNavItem(icon: Icons.location_on_rounded, label: 'MAP', isActive: false, onTap: () {
             Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MapPage()));

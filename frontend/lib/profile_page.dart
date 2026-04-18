@@ -26,11 +26,14 @@ class _ProfilePageState extends State<ProfilePage> {
   double _calories = 0.0;
   double _distanceKm = 0.0;
 
-  // Weekly bar chart data (7 days: Sun-Sat)
-  final List<double> _weeklySteps = [4200, 6100, 5500, 7800, 6300, 3900, 10000];
-  final List<String> _weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  // Today = last index (Saturday) is highlighted
-  final int _activeDay = 6;
+  int _goldTrophies = 0;
+  int _silverTrophies = 0;
+  int _bronzeTrophies = 0;
+
+  // Weekly bar chart data
+  List<double> _weeklySteps = [0, 0, 0, 0, 0, 0, 0];
+  List<String> _weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  int _activeDay = 6;
 
   @override
   void initState() {
@@ -45,8 +48,7 @@ class _ProfilePageState extends State<ProfilePage> {
       final result = await authService.getProfile();
       final profile = result['profile'];
 
-      final healthData = await HealthService().fetchTodayMetrics();
-      final double meters = (healthData['distance'] ?? 0.0).toDouble();
+      final summary = await HealthService().fetchSummary('W');
 
       if (mounted) {
         setState(() {
@@ -54,14 +56,26 @@ class _ProfilePageState extends State<ProfilePage> {
           _lastName = profile['lastName'] ?? '';
           _avatarUrl = profile['avatarUrl'];
           _currentBalance = profile['currentBalance'] ?? 0;
-          _steps = healthData['steps'] ?? 0;
-          _calories = (healthData['calories'] ?? 0.0).toDouble();
-          _distanceKm = meters / 1000.0;
-          _weeklySteps[_activeDay] = _steps.toDouble();
+          _goldTrophies = profile['goldTrophies'] ?? 0;
+          _silverTrophies = profile['silverTrophies'] ?? 0;
+          _bronzeTrophies = profile['bronzeTrophies'] ?? 0;
+          
+          if (summary != null) {
+            _steps = (summary['steps'] as num?)?.toInt() ?? 0;
+            _calories = (summary['calories'] as num?)?.toDouble() ?? 0.0;
+            _distanceKm = (summary['distance'] as num?)?.toDouble() ?? 0.0;
+            
+            final bars = (summary['chartBars'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+            if (bars.isNotEmpty) {
+              _weeklySteps = bars.map((b) => (b['value'] as num).toDouble()).toList();
+              _weekDays = bars.map((b) => b['label']?.toString() ?? '').toList();
+              _activeDay = bars.length - 1;
+            }
+          }
           _isLoading = false;
         });
         // Refresh balance from wallet (source of truth)
-        final balance = await AuthService().fetchBalance();
+        final balance = await authService.fetchBalance();
         if (mounted) setState(() => _currentBalance = balance);
       }
     } catch (e) {
@@ -476,17 +490,17 @@ class _ProfilePageState extends State<ProfilePage> {
                 _buildTrophyItem(
                   imagePath: 'assets/images/gold_medal.png',
                   fallbackColor: Colors.amber,
-                  label: '1 win',
+                  label: '$_goldTrophies win',
                 ),
                 _buildTrophyItem(
                   imagePath: 'assets/images/silver_medal.png',
                   fallbackColor: Colors.grey,
-                  label: '0 win',
+                  label: '$_silverTrophies win',
                 ),
                 _buildTrophyItem(
                   imagePath: 'assets/images/bronze_medal.png',
                   fallbackColor: Colors.orange,
-                  label: '3 win',
+                  label: '$_bronzeTrophies win',
                 ),
               ],
             ),

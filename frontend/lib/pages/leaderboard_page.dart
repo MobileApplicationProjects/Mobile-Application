@@ -3,6 +3,8 @@ import '../services/room_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/create_room_dialog.dart';
 import '../widgets/profile_avatar.dart';
+import 'map_page.dart';
+import 'share_page.dart';
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -417,9 +419,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                       MediaQuery.of(context).size.width * 0.12,
                                   bottom: 20,
                                   child: _buildPodiumAvatar(
-                                    imageUrl:
-                                        _leaderboard[1]['avatar_url'] ??
-                                        'https://i.pravatar.cc/150?u=${_leaderboard[1]['user_id']}',
+                                    imageUrl: _leaderboard[1]['avatar_url'],
                                     name:
                                         _leaderboard[1]['username'] ??
                                         _leaderboard[1]['first_name'],
@@ -436,9 +436,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                       MediaQuery.of(context).size.width * 0.12,
                                   bottom: 0,
                                   child: _buildPodiumAvatar(
-                                    imageUrl:
-                                        _leaderboard[2]['avatar_url'] ??
-                                        'https://i.pravatar.cc/150?u=${_leaderboard[2]['user_id']}',
+                                    imageUrl: _leaderboard[2]['avatar_url'],
                                     name:
                                         _leaderboard[2]['username'] ??
                                         _leaderboard[2]['first_name'],
@@ -453,9 +451,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                 Positioned(
                                   bottom: 50,
                                   child: _buildPodiumAvatar(
-                                    imageUrl:
-                                        _leaderboard[0]['avatar_url'] ??
-                                        'https://i.pravatar.cc/150?u=${_leaderboard[0]['user_id']}',
+                                    imageUrl: _leaderboard[0]['avatar_url'],
                                     name:
                                         _leaderboard[0]['username'] ??
                                         _leaderboard[0]['first_name'],
@@ -486,9 +482,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                             padding: const EdgeInsets.only(bottom: 12.0),
                             child: _buildRankCard(
                               rank: '${userIndex + 1}',
-                              imageUrl:
-                                  u['avatar_url'] ??
-                                  'https://i.pravatar.cc/150?u=${u['user_id']}',
+                              imageUrl: u['avatar_url'],
                               name: u['username'] ?? u['first_name'],
                               score: '${u['total_steps']}',
                               isYou: u['user_id'] == _currentUserId,
@@ -511,7 +505,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
   }
 
   Widget _buildPodiumAvatar({
-    required String imageUrl,
+    required String? imageUrl,
     required String name,
     required String score,
     required int rank,
@@ -599,7 +593,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
   Widget _buildRankCard({
     required String rank,
-    required String imageUrl,
+    required String? imageUrl,
     required String name,
     required String score,
     bool isYou = false,
@@ -701,19 +695,23 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
               icon: Icons.location_on_rounded,
               label: 'MAP',
               isActive: false,
-              onTap: () {},
+              onTap: () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MapPage()));
+              },
             ),
             _buildNavItem(
               icon: Icons.track_changes_rounded,
               label: 'CHALLENGE',
-              isActive: false,
+              isActive: true,
               onTap: () {},
             ),
             _buildNavItem(
               icon: Icons.ios_share_rounded,
               label: 'SHARE',
               isActive: false,
-              onTap: () {},
+              onTap: () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SharePage()));
+              },
             ),
           ],
         ),

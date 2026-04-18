@@ -223,4 +223,25 @@ class AuthService {
       throw Exception('Failed to fetch transactions: ${response.statusCode}');
     }
   }
+
+  /// Fetches the current wallet balance directly from DB
+  Future<int> fetchBalance() async {
+    final token = await getToken();
+    if (token == null) return 0;
+
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/account/balance'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['balance'] as num?)?.toInt() ?? 0;
+      }
+    } catch (_) {}
+    return 0;
+  }
 }

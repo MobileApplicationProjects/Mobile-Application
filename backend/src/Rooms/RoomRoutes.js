@@ -10,5 +10,7 @@ router.post('/', RoomController.createRoom);
 router.get('/', RoomController.listRooms);
 router.post('/:id/accept', RoomController.acceptInvite);
 router.get('/:id/leaderboard', RoomController.getLeaderboard);
+router.put('/:id', RoomController.updateRoom);
+router.delete('/:id', RoomController.deleteRoom);
 
 module.exports = router;

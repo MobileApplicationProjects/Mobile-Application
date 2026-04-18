@@ -10,6 +10,10 @@ class RoomController {
         return res.status(400).json({ message: 'Room name, duration, and at least 1 invite are required.' });
       }
 
+      if (invites.length > 10) {
+        return res.status(400).json({ message: 'You can only invite up to 10 users per room.' });
+      }
+
       // Resolve usernames/emails to user IDs
       const memberIds = [];
       const notFound = [];
@@ -85,6 +89,45 @@ class RoomController {
       return res.status(200).json(data);
     } catch (error) {
       console.error('Error getting leaderboard:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
+
+  static async updateRoom(req, res) {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+      const { name, duration_days } = req.body;
+
+      if (!name && !duration_days) {
+        return res.status(400).json({ message: 'Nothing to update' });
+      }
+
+      const success = await RoomModel.updateRoom(id, { name, duration_days }, userId);
+      if (success) {
+        return res.status(200).json({ message: 'Room updated successfully' });
+      } else {
+        return res.status(404).json({ message: 'Room not found or you do not have permission to edit it' });
+      }
+    } catch (error) {
+      console.error('Error updating room:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
+
+  static async deleteRoom(req, res) {
+    try {
+      const userId = req.user.id;
+      const { id } = req.params;
+
+      const success = await RoomModel.deleteRoom(id, userId);
+      if (success) {
+        return res.status(200).json({ message: 'Room deleted successfully' });
+      } else {
+        return res.status(404).json({ message: 'Room not found or you do not have permission to delete it' });
+      }
+    } catch (error) {
+      console.error('Error deleting room:', error);
       return res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   }

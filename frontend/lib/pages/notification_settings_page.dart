@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class NotificationSettingsPage extends StatefulWidget {
   const NotificationSettingsPage({Key? key}) : super(key: key);
@@ -29,9 +30,25 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
     });
   }
 
-  Future<void> _saveSetting(String key, bool value) async {
+  Future<bool> _saveSetting(String key, bool value) async {
+    bool finalValue = value;
+
+    if (value == true) {
+      // Request notification permission
+      var status = await Permission.notification.request();
+      if (!status.isGranted) {
+        finalValue = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('กรุณาเปิดอนุญาตการแจ้งเตือนในตั้งค่าแอพก่อน')),
+          );
+        }
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(key, value);
+    await prefs.setBool(key, finalValue);
+    return finalValue;
   }
 
   Widget _buildNotificationItem(
@@ -97,24 +114,24 @@ class _NotificationSettingsPageState extends State<NotificationSettingsPage> {
           _buildNotificationItem(
             'Daily Challenge Reminder',
             _dailyChallengeReminder,
-            (val) {
+            (val) async {
+              bool result = await _saveSetting('notif_daily_challenge', val);
               setState(() {
-                _dailyChallengeReminder = val;
+                _dailyChallengeReminder = result;
               });
-              _saveSetting('notif_daily_challenge', val);
             },
           ),
-          _buildNotificationItem('Goal Achieved', _goalAchieved, (val) {
+          _buildNotificationItem('Goal Achieved', _goalAchieved, (val) async {
+            bool result = await _saveSetting('notif_goal_achieved', val);
             setState(() {
-              _goalAchieved = val;
+              _goalAchieved = result;
             });
-            _saveSetting('notif_goal_achieved', val);
           }),
-          _buildNotificationItem('Leader Board', _leaderBoard, (val) {
+          _buildNotificationItem('Leader Board', _leaderBoard, (val) async {
+            bool result = await _saveSetting('notif_leaderboard', val);
             setState(() {
-              _leaderBoard = val;
+              _leaderBoard = result;
             });
-            _saveSetting('notif_leaderboard', val);
           }),
         ],
       ),

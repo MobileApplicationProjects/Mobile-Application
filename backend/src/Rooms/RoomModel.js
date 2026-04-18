@@ -123,6 +123,56 @@ class RoomModel {
       leaderboard: rows
     };
   }
+
+  static async updateRoom(roomId, updates, userId) {
+    const { name, duration_days } = updates;
+    const query = `
+      UPDATE rooms 
+      SET name = COALESCE(?, name), 
+          duration_days = COALESCE(?, duration_days),
+          end_date = IF(? IS NOT NULL, DATE_ADD(start_date, INTERVAL ? DAY), end_date)
+      WHERE id = ? AND created_by = ?
+    `;
+    const [result] = await pool.execute(query, [
+      name || null, 
+      duration_days || null, 
+      duration_days || null, 
+      duration_days || null, 
+      roomId, 
+      userId
+    ]);
+    return result.affectedRows > 0;
+  }
+
+  static async deleteRoom(roomId, userId) {
+    let connection;
+    try {
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
+
+      // First check if user is creator
+      const checkQuery = `SELECT id FROM rooms WHERE id = ? AND created_by = ?`;
+      const [rows] = await connection.execute(checkQuery, [roomId, userId]);
+      
+      if (rows.length === 0) {
+        await connection.rollback();
+        return false; // Not found or not creator
+      }
+
+      // Delete relative foreign keys automatically if CASCADE is setup, 
+      // but to be safe we delete dependencies first
+      await connection.execute(`DELETE FROM room_members WHERE room_id = ?`, [roomId]);
+      await connection.execute(`DELETE FROM rooms WHERE id = ?`, [roomId]);
+
+      await connection.commit();
+      return true;
+    } catch (error) {
+      if (connection) await connection.rollback();
+      throw error;
+    } finally {
+      if (connection) connection.release();
+    }
+  }
 }
 
 module.exports = RoomModel;

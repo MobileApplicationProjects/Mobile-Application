@@ -48,10 +48,18 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _initNotification();
-    _loadProfile();
-    _loadHealthData();
-    _loadLatestChallenge();
-    _loadLeaderboardForCard();
+    // Use an async method to ensure _loadProfile completes first so _userId is ready
+    _initializeData();
+  }
+
+  Future<void> _initializeData() async {
+    await _loadProfile();
+    // After profile is loaded, load the rest concurrently
+    await Future.wait([
+      _loadHealthData(),
+      _loadLatestChallenge(),
+      _loadLeaderboardForCard(),
+    ]);
   }
 
   Future<void> _initNotification() async {
@@ -354,7 +362,9 @@ class _HomePageState extends State<HomePage> {
                               currentBalance: _currentBalance,
                             ),
                           ),
-                        );
+                        ).then((_) {
+                          _loadProfile(); // Reload balance
+                        });
                       },
                       child: _buildCard(
                         imagePath: 'assets/images/medal.png',
@@ -372,7 +382,9 @@ class _HomePageState extends State<HomePage> {
                           MaterialPageRoute(
                             builder: (context) => const StreakPage(),
                           ),
-                        );
+                        ).then((_) {
+                          _loadHealthData(); // Reload streak
+                        });
                       },
                       child: _buildCard(
                         imagePath: 'assets/images/fire.png',
@@ -393,7 +405,9 @@ class _HomePageState extends State<HomePage> {
                     MaterialPageRoute(
                       builder: (context) => const LeaderboardPage(),
                     ),
-                  );
+                  ).then((_) {
+                    _loadLeaderboardForCard(); // Reload leaderboard data
+                  });
                 },
                 child: _buildLeaderboardCard(),
               ),
@@ -556,35 +570,84 @@ class _HomePageState extends State<HomePage> {
       final rooms = await _roomService.listRooms();
       _rooms = rooms;
 
-      // Find the first accepted room
-      final acceptedRoom = rooms.firstWhere(
-        (r) => r['member_status'] == 'accepted',
-        orElse: () => null,
-      );
+      // Find all accepted rooms
+      final acceptedRooms = rooms.where((r) => r['member_status'] == 'accepted').toList();
 
-      if (acceptedRoom != null) {
-        final data = await _roomService.getLeaderboard(acceptedRoom['id']);
-        final leaderboard = data['leaderboard'] as List<dynamic>? ?? [];
+      if (acceptedRooms.isNotEmpty) {
+        // Fetch leaderboards for all accepted rooms concurrently
+        final leaderboardsData = await Future.wait(
+          acceptedRooms.map((room) async {
+            try {
+              final data = await _roomService.getLeaderboard(room['id']);
+              final leaderboard = data['leaderboard'] as List<dynamic>? ?? [];
 
-        // Find the current user's rank
-        int rank = 0;
-        int steps = 0;
-        for (int i = 0; i < leaderboard.length; i++) {
-          if (leaderboard[i]['user_id'] == _userId) {
-            rank = i + 1;
-            steps = (leaderboard[i]['total_steps'] as num).toInt();
-            break;
-          }
-        }
+              int rank = 0;
+              int steps = 0;
+              for (int i = 0; i < leaderboard.length; i++) {
+                if (leaderboard[i]['user_id'] == _userId) {
+                  rank = i + 1;
+                  steps = (leaderboard[i]['total_steps'] as num).toInt();
+                  break;
+                }
+              }
+              return {
+                'room': room,
+                'leaderboard': leaderboard,
+                'rank': rank,
+                'steps': steps,
+              };
+            } catch (e) {
+              return null;
+            }
+          }),
+        );
 
-        if (mounted) {
-          setState(() {
-            _leaderboardData = leaderboard;
-            _leaderboardRoomName = acceptedRoom['name'] ?? '';
-            _userRank = rank;
-            _userSteps = steps;
-            _isLoadingLeaderboard = false;
+        // Filter out any errors during fetch
+        final validResults = leaderboardsData
+            .where((res) => res != null)
+            .cast<Map<String, dynamic>>()
+            .toList();
+
+        if (validResults.isNotEmpty) {
+          // Sort to find the room where the user has the "highest" (best) rank.
+          // Rank 1 is better than Rank 2. If unranked (0), treat as worst (999999).
+          // If rank is tied, sort by steps descending (largest steps first).
+          validResults.sort((a, b) {
+            int rankA = a['rank'] as int;
+            int rankB = b['rank'] as int;
+            int stepsA = a['steps'] as int;
+            int stepsB = b['steps'] as int;
+
+            if (rankA == 0) rankA = 999999;
+            if (rankB == 0) rankB = 999999;
+
+            final rankComparison = rankA.compareTo(rankB);
+            if (rankComparison != 0) return rankComparison;
+
+            return stepsB.compareTo(stepsA);
           });
+
+          final bestResult = validResults.first;
+
+          if (mounted) {
+            setState(() {
+              _leaderboardData = bestResult['leaderboard'] as List<dynamic>;
+              _leaderboardRoomName = bestResult['room']['name'] ?? '';
+              _userRank = bestResult['rank'] as int;
+              _userSteps = bestResult['steps'] as int;
+              _isLoadingLeaderboard = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              _leaderboardData = [];
+              _leaderboardRoomName = '';
+              _userRank = 0;
+              _userSteps = 0;
+              _isLoadingLeaderboard = false;
+            });
+          }
         }
       } else {
         if (mounted) {

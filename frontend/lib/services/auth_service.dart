@@ -201,4 +201,26 @@ class AuthService {
       throw Exception('Failed to update profile: ${response.statusCode}');
     }
   }
+
+  /// Fetches token history transactions
+  Future<List<dynamic>> fetchTransactions() async {
+    final token = await getToken();
+    if (token == null) {
+      throw Exception('No authentication token found');
+    }
+
+    final response = await http.get(
+      Uri.parse('${ApiConstants.baseUrl}/account/transactions'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    } else {
+      throw Exception('Failed to fetch transactions: ${response.statusCode}');
+    }
+  }
 }

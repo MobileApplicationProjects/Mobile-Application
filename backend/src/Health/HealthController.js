@@ -78,6 +78,16 @@ class HealthController {
       return res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   }
+  static async getStatistics(req, res) {
+    try {
+      const userId = req.user.id;
+      const stats = await HealthModel.getStatistics(userId);
+      return res.status(200).json(stats);
+    } catch (error) {
+      console.error('Error in HealthController.getStatistics:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
 }
 
 module.exports = HealthController;

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+import 'package:intl/intl.dart';
 
 class TokenHistoryItem {
   final String time;
@@ -29,30 +31,52 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
     _fetchHistory();
   }
 
-  // [API MOCK] ฟังก์ชันไว้สำหรับดึงข้อมูลประวัติเหรียญ
   Future<void> _fetchHistory() async {
     setState(() {
       _isLoading = true;
     });
 
-    // TODO: เรียกใช้ API ของคุณที่นี่ เช่น
-    // final response = await api.get('/user/tokens/history');
+    try {
+      final transactions = await AuthService().fetchTransactions();
+      
+      final List<TokenHistoryItem> parsedHistory = transactions.map((t) {
+        // Parse time
+        final date = DateTime.tryParse(t['created_at'].toString())?.toLocal() ?? DateTime.now();
+        final timeString = DateFormat('HH:mm').format(date);
+        
+        // Map transaction_type to readable title
+        String rawType = t['transaction_type'] ?? 'Unknown';
+        String title = rawType;
+        if (rawType.toLowerCase() == 'earn_step') {
+          title = 'Daily Step';
+        } else if (rawType.toLowerCase() == 'earn_challenge') {
+          title = 'Challenge Win';
+        } else if (rawType.toLowerCase() == 'spend') {
+          title = 'Redeemed Reward';
+        }
 
-    // จำลองเวลาหน่วงในการดึงข้อมูล
-    await Future.delayed(const Duration(milliseconds: 500));
+        // Amount math
+        final amountNum = t['amount'] is num ? t['amount'] as num : int.tryParse(t['amount'].toString()) ?? 0;
+        final amountString = amountNum > 0 ? '+$amountNum' : '$amountNum';
 
-    setState(() {
-      _history = [
-        TokenHistoryItem(time: '08:00', title: 'Daily Step', amount: '+15'),
-        TokenHistoryItem(time: '09:00', title: 'Morning Walk', amount: '+20'),
-        TokenHistoryItem(time: '12:00', title: 'Daily Step', amount: '+5'),
-        TokenHistoryItem(time: '13:00', title: 'Daily Step', amount: '+5'),
-        TokenHistoryItem(time: '14:00', title: 'Daily Step', amount: '+5'),
-        TokenHistoryItem(time: '15:00', title: 'Daily Step', amount: '+5'),
-        TokenHistoryItem(time: '20:00', title: 'Daily Step', amount: '+5'),
-      ];
-      _isLoading = false;
-    });
+        return TokenHistoryItem(
+          time: timeString,
+          title: title,
+          amount: amountString,
+        );
+      }).toList();
+
+      setState(() {
+        _history = parsedHistory;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Fetch token history error: $e');
+      setState(() {
+        _history = [];
+        _isLoading = false;
+      });
+    }
   }
 
   @override

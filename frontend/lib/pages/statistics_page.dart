@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/health_service.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -21,33 +22,57 @@ class _StatisticsPageState extends State<StatisticsPage> {
     _fetchStatistics();
   }
 
-  // [API MOCK] ฟังก์ชันไว้สำหรับดึงข้อมูลสถิติต่างๆ 
   Future<void> _fetchStatistics() async {
     setState(() {
       _isLoading = true;
     });
 
-    // TODO: เรียกใช้ API ของคุณที่นี่ เช่น
-    // final response = await api.get('/user/statistics');
+    try {
+      final stats = await HealthService().fetchStatistics();
+      
+      if (stats != null) {
+        setState(() {
+          _avgActivity = {
+            'Avg Step/Week': '${stats['avgStepsPerWeek'] ?? 0}',
+            'Avg Calories/Week': '${stats['avgCaloriesPerWeek'] ?? 0}',
+            'Avg Distance/Week': '${stats['avgDistancePerWeek'] ?? 0}',
+          };
+          _maxActivity = {
+            'Max Step': '${stats['maxSteps'] ?? 0}',
+            'Max Calories': '${stats['maxCalories'] ?? 0}',
+            'Max Distance': '${stats['maxDistance'] ?? 0}',
+          };
+          _tokenStats = {
+            'Avg token/day': '${stats['avgTokenPerDay'] ?? 0}',
+            'Max token': '${stats['maxToken'] ?? 0}',
+            'Max pay': '${stats['maxPay'] ?? 0}',
+          };
+          _isLoading = false;
+        });
+      } else {
+        _setEmptyDefaults();
+      }
+    } catch (e) {
+      _setEmptyDefaults();
+    }
+  }
 
-    // จำลองเวลาหน่วงในการดึงข้อมูล
-    await Future.delayed(const Duration(milliseconds: 500));
-
+  void _setEmptyDefaults() {
     setState(() {
       _avgActivity = {
-        'Avg Step/Week': '15,000',
-        'Avg Calories/Week': '1,500',
-        'Avg Distance/Week': '6',
+        'Avg Step/Week': '0',
+        'Avg Calories/Week': '0',
+        'Avg Distance/Week': '0',
       };
       _maxActivity = {
-        'Max Step': '30,000',
-        'Max Calories': '2,500',
-        'Max Distance': '12',
+        'Max Step': '0',
+        'Max Calories': '0',
+        'Max Distance': '0',
       };
       _tokenStats = {
-        'Avg token/day': '70',
-        'Max token': '100',
-        'Max pay': '10,500',
+        'Avg token/day': '0',
+        'Max token': '0',
+        'Max pay': '0',
       };
       _isLoading = false;
     });

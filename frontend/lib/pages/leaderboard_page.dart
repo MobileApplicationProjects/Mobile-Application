@@ -112,20 +112,91 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     );
   }
 
+  void _showEditRoomDialog() {
+    if (_selectedRoom == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    showDialog(
+      context: context,
+      builder: (dialogContext) => CreateRoomDialog(
+        isEditing: true,
+        initialName: _selectedRoom['name'],
+        onEditSubmit: (name) async {
+          Navigator.pop(dialogContext);
+          if (!mounted) return;
+          setState(() => _isLoading = true);
+          try {
+            await _roomService.updateRoom(
+              roomId: _selectedRoom['id'],
+              name: name,
+            );
+            messenger.showSnackBar(
+              const SnackBar(content: Text('Room updated successfully!')),
+            );
+            if (!mounted) return;
+            await _loadRooms();
+          } catch (e) {
+            if (!mounted) return;
+            setState(() => _isLoading = false);
+            messenger.showSnackBar(SnackBar(content: Text(e.toString())));
+          }
+        },
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteRoom() async {
+    if (_selectedRoom == null) return;
+    
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2A2A2A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Delete Room', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text('Are you sure you want to delete "${_selectedRoom['name']}"? This action cannot be undone.', style: TextStyle(color: Colors.grey[400])),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
+            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      setState(() => _isLoading = true);
+      try {
+        await _roomService.deleteRoom(_selectedRoom['id']);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Room deleted successfully!')));
+        _selectedRoom = null;
+        await _loadRooms();
+      } catch (e) {
+        if (!mounted) return;
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
   Future<void> _acceptInvite() async {
     if (_selectedRoom == null) return;
     setState(() => _isLoading = true);
+    final messenger = ScaffoldMessenger.of(context);
     try {
       await _roomService.acceptInvite(_selectedRoom['id']);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invite accepted!')));
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('Invite accepted!')));
       await _loadRooms();
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.toString())));
+      messenger.showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -219,49 +290,89 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                   ),
                 )
               else ...[
-                // Room Dropdown
-                Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<dynamic>(
-                      dropdownColor: Colors.black87,
-                      value: _selectedRoom,
-                      icon: const Icon(
-                        Icons.arrow_drop_down,
-                        color: Colors.white,
-                      ),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      isExpanded: true,
-                      onChanged: (newValue) {
-                        setState(() {
-                          _selectedRoom = newValue;
-                        });
-                        _loadLeaderboard(newValue['id']);
-                      },
-                      items: _rooms.map<DropdownMenuItem<dynamic>>((room) {
-                        bool isInvited = room['member_status'] == 'invited';
-                        return DropdownMenuItem<dynamic>(
-                          value: room,
-                          child: Text(
-                            '${room['name']} ${isInvited ? '(Invite)' : ''}',
+                // Room Selector Row
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
                           ),
-                        );
-                      }).toList(),
-                    ),
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<dynamic>(
+                              dropdownColor: Colors.black87,
+                              value: _selectedRoom,
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Colors.white,
+                              ),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              isExpanded: true,
+                              onChanged: (newValue) {
+                                setState(() {
+                                  _selectedRoom = newValue;
+                                });
+                                _loadLeaderboard(newValue['id']);
+                              },
+                              items: _rooms.map<DropdownMenuItem<dynamic>>((room) {
+                                bool isInvited = room['member_status'] == 'invited';
+                                return DropdownMenuItem<dynamic>(
+                                  value: room,
+                                  child: Text(
+                                    '${room['name']} ${isInvited ? '(Invite)' : ''}',
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (_selectedRoom != null && _selectedRoom['created_by'] == _currentUserId)
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.more_vert, color: Colors.white),
+                          color: const Color(0xFF222222),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _showEditRoomDialog();
+                            } else if (value == 'delete') {
+                              _confirmDeleteRoom();
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                            const PopupMenuItem<String>(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit, color: Colors.white, size: 20),
+                                  SizedBox(width: 12),
+                                  Text('Edit Name', style: TextStyle(color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete, color: Colors.redAccent, size: 20),
+                                  SizedBox(width: 12),
+                                  Text('Delete Room', style: TextStyle(color: Colors.redAccent)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
                   ),
                 ),
 
@@ -500,7 +611,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isYou ? 0.2 : 0.05),
+            color: Colors.black.withValues(alpha: isYou ? 0.2 : 0.05),
             blurRadius: isYou ? 12 : 5,
             offset: const Offset(0, 4),
           ),

@@ -125,6 +125,18 @@ class AccountModel {
 
     await pool.execute(query, values);
   }
+
+  static async getTransactions(userId) {
+    const query = `
+      SELECT id, amount, transaction_type, created_at, reference_id
+      FROM token_transactions
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+      LIMIT 100
+    `;
+    const [rows] = await pool.execute(query, [userId]);
+    return rows;
+  }
 }
 
 module.exports = AccountModel;

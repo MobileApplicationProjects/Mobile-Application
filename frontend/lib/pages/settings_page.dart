@@ -1,20 +1,28 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'profile_edit_page.dart';
 import 'about_you_edit_page.dart';
-import 'sign_in_page.dart';
-import '../services/auth_service.dart';
-import 'notification_settings_page.dart';
 import 'data_sync_page.dart';
+import 'notification_settings_page.dart';
 import 'privacy_control_page.dart';
 import 'privacy_policy_page.dart';
 import 'terms_of_service_page.dart';
+import 'sign_in_page.dart';
+import '../services/auth_service.dart';
+import '../widgets/profile_avatar.dart';
 
-class MenuItem {
+class _SettingsMenuItem {
   final String title;
   final bool isLogout;
   final VoidCallback onTap;
 
-  MenuItem({required this.title, this.isLogout = false, required this.onTap});
+  _SettingsMenuItem({
+    required this.title,
+    this.isLogout = false,
+    required this.onTap,
+  });
 }
 
 class SettingsPage extends StatefulWidget {
@@ -27,9 +35,12 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   bool _isLoading = true;
 
-  // Data states from API
   String _userName = '';
-  String _profileImageUrl = '';
+  String? _avatarUrl;
+
+  XFile? _selectedImage;
+  Uint8List? _imageBytes;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -37,12 +48,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _fetchSettingsData();
   }
 
-  // ดึงข้อมูลผู้ใช้สำหรับตั้งค่าจาก API
   Future<void> _fetchSettingsData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
       final authService = AuthService();
       final result = await authService.getProfile();
@@ -50,17 +57,132 @@ class _SettingsPageState extends State<SettingsPage> {
 
       setState(() {
         _userName = '${profile['firstName']} ${profile['lastName']}';
-        _profileImageUrl = ''; // Profile image not yet implemented
+        _avatarUrl = profile['avatarUrl'];
         _isLoading = false;
       });
     } catch (e) {
       if (mounted) {
         setState(() {
           _userName = 'Unknown User';
+          _avatarUrl = null;
           _isLoading = false;
         });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 800,
+      );
+      if (picked != null) {
+        final bytes = await picked.readAsBytes();
+        setState(() {
+          _selectedImage = picked;
+          _imageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error picking image: $e');
+    }
+  }
+
+  Future<void> _saveAvatar() async {
+    if (_selectedImage == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isSaving = true);
+    try {
+      final url = await AuthService().uploadAndSetAvatar(_selectedImage!);
+      setState(() {
+        _avatarUrl = url;
+        _selectedImage = null;
+        _imageBytes = null;
+        _isSaving = false;
+      });
+      messenger.showSnackBar(
+        const SnackBar(content: Text('อัพโหลดรูปโปรไฟล์สำเร็จ!')),
+      );
+    } catch (e) {
+      setState(() => _isSaving = false);
+      messenger.showSnackBar(
+        SnackBar(content: Text('อัพโหลดไม่สำเร็จ: $e')),
+      );
+    }
+  }
+
+  void _showImageSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF2A2A2A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'เลือกรูปจาก',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library_rounded,
+                  color: Colors.white,
+                ),
+                title: const Text(
+                  'คลังรูปภาพ',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.camera_alt_rounded,
+                  color: Colors.white,
+                ),
+                title: const Text(
+                  'กล้อง',
+                  style: TextStyle(color: Colors.white),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -68,80 +190,137 @@ class _SettingsPageState extends State<SettingsPage> {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFF1D1D1D),
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        body: Center(child: CircularProgressIndicator(color: Colors.red)),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1D1D1D), // Dark background for gaps
+      backgroundColor: const Color(0xFF1D1D1D),
       body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
             _buildHeader(),
+
+            // Save Button (appears when image is picked)
+            if (_selectedImage != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _saveAvatar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[700],
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    elevation: 8,
+                    shadowColor: Colors.red.withValues(alpha: 0.5),
+                  ),
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'บันทึกรูปโปรไฟล์ใหม่',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                ),
+              ),
+
             const SizedBox(height: 30),
+
             _buildMenuGroup([
-              MenuItem(title: 'Profile', onTap: () {
-                Navigator.push(
+              _SettingsMenuItem(
+                title: 'Profile',
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProfileEditPage()),
-                );
-              }),
-              MenuItem(title: 'About you', onTap: () {
-                Navigator.push(
+                  MaterialPageRoute(builder: (_) => const ProfileEditPage()),
+                ),
+              ),
+              _SettingsMenuItem(
+                title: 'About you',
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AboutYouEditPage()),
-                );
-              }),
+                  MaterialPageRoute(builder: (_) => const AboutYouEditPage()),
+                ),
+              ),
             ]),
             _buildMenuGroup([
-              MenuItem(title: 'Health Apps', onTap: () {
-                Navigator.push(
+              _SettingsMenuItem(
+                title: 'Health Apps',
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const DataSyncPage()),
-                );
-              }),
-              MenuItem(title: 'Push Notifications', onTap: () {
-                Navigator.push(
+                  MaterialPageRoute(builder: (_) => const DataSyncPage()),
+                ),
+              ),
+              _SettingsMenuItem(
+                title: 'Push Notifications',
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const NotificationSettingsPage()),
-                );
-              }),
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationSettingsPage(),
+                  ),
+                ),
+              ),
             ]),
             _buildMenuGroup([
-              MenuItem(title: 'Privacy Controls', onTap: () {
-                Navigator.push(
+              _SettingsMenuItem(
+                title: 'Privacy Controls',
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PrivacyControlPage()),
-                );
-              }),
+                  MaterialPageRoute(builder: (_) => const PrivacyControlPage()),
+                ),
+              ),
             ]),
             _buildMenuGroup([
-              MenuItem(title: 'Terms of Service', onTap: () {
-                Navigator.push(
+              _SettingsMenuItem(
+                title: 'Terms of Service',
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const TermsOfServicePage()),
-                );
-              }),
-              MenuItem(title: 'Privacy Policy', onTap: () {
-                Navigator.push(
+                  MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
+                ),
+              ),
+              _SettingsMenuItem(
+                title: 'Privacy Policy',
+                onTap: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()),
-                );
-              }),
+                  MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+                ),
+              ),
             ]),
             _buildMenuGroup([
-              MenuItem(
+              _SettingsMenuItem(
                 title: 'Logout',
                 isLogout: true,
                 onTap: () async {
+                  final navigator = Navigator.of(context);
                   final confirmed = await showDialog<bool>(
                     context: context,
                     builder: (ctx) => AlertDialog(
                       backgroundColor: const Color(0xFF2A2A2A),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       title: const Text(
                         'ออกจากระบบ',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       content: Text(
                         'คุณต้องการออกจากระบบใช่ไหม?',
@@ -150,16 +329,24 @@ class _SettingsPageState extends State<SettingsPage> {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, false),
-                          child: Text('ยกเลิก', style: TextStyle(color: Colors.grey[400])),
+                          child: Text(
+                            'ยกเลิก',
+                            style: TextStyle(color: Colors.grey[400]),
+                          ),
                         ),
                         ElevatedButton(
                           onPressed: () => Navigator.pop(ctx, true),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red[700],
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                          child: const Text('ออกจากระบบ', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'ออกจากระบบ',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
                         ),
                       ],
                     ),
@@ -167,12 +354,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   if (confirmed == true && mounted) {
                     await AuthService().signOut();
-                    if (mounted) {
-                      Navigator.of(context).pushAndRemoveUntil(
-                        MaterialPageRoute(builder: (context) => const SignInPage()),
-                        (route) => false,
-                      );
-                    }
+                    navigator.pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const SignInPage()),
+                      (route) => false,
+                    );
                   }
                 },
               ),
@@ -186,8 +371,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildHeader() {
     return SizedBox(
-      height:
-          280, // Total height of the header area including overlapping avatar
+      height: 280,
       child: Stack(
         alignment: Alignment.topCenter,
         children: [
@@ -230,48 +414,52 @@ class _SettingsPageState extends State<SettingsPage> {
           // Profile Avatar overlapping the bottom edge
           Positioned(
             bottom: 0,
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 4),
-                // ignore: prefer_const_constructors
-                image: _profileImageUrl.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(_profileImageUrl),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
-                color: Colors.grey[800],
-              ),
-              child: _profileImageUrl.isEmpty
-                  ? const Center(
-                      child: Icon(Icons.person, size: 60, color: Colors.white),
-                    )
-                  : null,
-            ),
-          ),
-          // Edit Overlay
-          Positioned(
-            bottom: 8,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Icon(Icons.edit, size: 14, color: Colors.white),
-                  SizedBox(width: 4),
-                  Text(
-                    'Edit',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+            child: GestureDetector(
+              onTap: _showImageSourcePicker,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 4),
+                      color: Colors.grey[800],
+                    ),
+                    child: ProfileAvatar(
+                      avatarUrl: _avatarUrl,
+                      imageBytes: _imageBytes,
+                      radius: 96,
+                    ),
+                  ),
+                  // Edit Overlay
+                  Positioned(
+                    bottom: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.edit, size: 14, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            'Edit',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -283,7 +471,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildMenuGroup(List<MenuItem> items) {
+  Widget _buildMenuGroup(List<_SettingsMenuItem> items) {
     return Container(
       color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),

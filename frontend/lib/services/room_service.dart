@@ -90,4 +90,47 @@ class RoomService {
       throw Exception(data['message'] ?? 'Failed to get leaderboard');
     }
   }
+
+  Future<void> updateRoom({
+    required String roomId,
+    required String name,
+    int? durationDays,
+  }) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('No authentication token found');
+
+    final response = await http.put(
+      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.roomsEndpoint}/$roomId'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        if (name.isNotEmpty) 'name': name,
+        'duration_days': durationDays,
+      }..removeWhere((k, v) => v == null)),
+    );
+
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to update room');
+    }
+  }
+
+  Future<void> deleteRoom(String roomId) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('No authentication token found');
+
+    final response = await http.delete(
+      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.roomsEndpoint}/$roomId'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode != 200) {
+      final data = jsonDecode(response.body);
+      throw Exception(data['message'] ?? 'Failed to delete room');
+    }
+  }
 }

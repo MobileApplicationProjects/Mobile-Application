@@ -190,4 +190,27 @@ class HealthService {
       return 0;
     }
   }
+
+  /// Fetches global statistics for the user
+  Future<Map<String, dynamic>?> fetchStatistics() async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) return null;
+
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/health/statistics'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Fetch statistics failed: $e');
+      return null;
+    }
+  }
 }

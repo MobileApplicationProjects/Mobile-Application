@@ -195,5 +195,16 @@ class AccountController {
       res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   }
+
+  static async getTransactions(req, res) {
+    try {
+      const userId = req.user.id;
+      const transactions = await AccountModel.getTransactions(userId);
+      return res.status(200).json(transactions);
+    } catch (error) {
+      console.error('Get transactions error:', error);
+      res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
 }
 module.exports = AccountController;

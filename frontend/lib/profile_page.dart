@@ -1,24 +1,12 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import 'pages/data_sync_page.dart';
-import 'pages/notification_settings_page.dart';
-import 'pages/privacy_control_page.dart';
-import 'pages/privacy_policy_page.dart';
-import 'pages/terms_of_service_page.dart';
-import 'pages/profile_edit_page.dart';
-import 'pages/about_you_edit_page.dart';
+import 'pages/settings_page.dart';
+import 'pages/statistics_page.dart';
+import 'pages/token_history_page.dart';
+import 'pages/leaderboard_page.dart';
+import 'pages/step_count_page.dart';
 import 'services/auth_service.dart';
+import 'services/health_service.dart';
 import 'widgets/profile_avatar.dart';
-
-class MenuItem {
-  final String title;
-  final bool isLogout;
-  final VoidCallback onTap;
-
-  MenuItem({required this.title, this.isLogout = false, required this.onTap});
-}
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -30,128 +18,62 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   bool _isLoading = true;
 
-  String _userName = '';
+  String _firstName = '';
+  String _lastName = '';
   String? _avatarUrl;
-  
-  XFile? _selectedImage;
-  Uint8List? _imageBytes;
-  bool _isSaving = false;
+  int _currentBalance = 0;
+  int _steps = 0;
+  double _calories = 0.0;
+  double _distanceKm = 0.0;
+
+  // Weekly bar chart data (7 days: Sun-Sat)
+  final List<double> _weeklySteps = [4200, 6100, 5500, 7800, 6300, 3900, 10000];
+  final List<String> _weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  // Today = last index (Saturday) is highlighted
+  final int _activeDay = 6;
 
   @override
   void initState() {
     super.initState();
-    _fetchProfileData();
+    _loadData();
   }
 
-  // ดึงข้อมูลส่วนตัวของผู้ใช้ (Profile) จาก API
-  Future<void> _fetchProfileData() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
     try {
       final authService = AuthService();
       final result = await authService.getProfile();
       final profile = result['profile'];
 
-      setState(() {
-        _userName = '${profile['firstName']} ${profile['lastName']}';
-        _avatarUrl = profile['avatarUrl'];
-        _isLoading = false;
-      });
+      final healthData = await HealthService().fetchTodayMetrics();
+      final double meters = (healthData['distance'] ?? 0.0).toDouble();
+
+      if (mounted) {
+        setState(() {
+          _firstName = profile['firstName'] ?? '';
+          _lastName = profile['lastName'] ?? '';
+          _avatarUrl = profile['avatarUrl'];
+          _currentBalance = profile['currentBalance'] ?? 0;
+          _steps = healthData['steps'] ?? 0;
+          _calories = (healthData['calories'] ?? 0.0).toDouble();
+          _distanceKm = meters / 1000.0;
+          // Update today's bar with actual steps
+          _weeklySteps[_activeDay] = _steps.toDouble();
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _userName = 'Unknown User';
-          _avatarUrl = null;
+          _firstName = 'User';
+          _lastName = '';
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load profile: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
       }
     }
   }
 
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final picked = await ImagePicker().pickImage(source: source, imageQuality: 85, maxWidth: 800);
-      if (picked != null) {
-        final bytes = await picked.readAsBytes();
-        setState(() {
-          _selectedImage = picked;
-          _imageBytes = bytes;
-        });
-      }
-    } catch (e) {
-      debugPrint('Error picking image: $e');
-    }
-  }
-
-  Future<void> _saveAvatar() async {
-    if (_selectedImage == null) return;
-    final messenger = ScaffoldMessenger.of(context);
-    setState(() => _isSaving = true);
-    try {
-      final url = await AuthService().uploadAndSetAvatar(_selectedImage!);
-      setState(() {
-        _avatarUrl = url;
-        _selectedImage = null;
-        _imageBytes = null;
-        _isSaving = false;
-      });
-      messenger.showSnackBar(const SnackBar(content: Text('อัพโหลดรูปโปรไฟล์สำเร็จ!')));
-    } catch (e) {
-      setState(() => _isSaving = false);
-      messenger.showSnackBar(SnackBar(content: Text('อัพโหลดไม่สำเร็จ: $e')));
-    }
-  }
-
-  void _showImageSourcePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF2A2A2A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40, height: 4,
-                decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(2)),
-              ),
-              const SizedBox(height: 16),
-              const Text('เลือกรูปจาก', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-              const SizedBox(height: 8),
-              ListTile(
-                leading: const Icon(Icons.photo_library_rounded, color: Colors.white),
-                title: const Text('คลังรูปภาพ', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.camera_alt_rounded, color: Colors.white),
-                title: const Text('กล้อง', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  String get _fullName => '$_firstName $_lastName'.trim();
 
   @override
   Widget build(BuildContext context) {
@@ -163,244 +85,442 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1D1D1D), // Dark background for gaps
-      body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+      backgroundColor: const Color(0xFF1D1D1D),
+      body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
-            
-            // Save Button (Appears when image is picked)
-            if (_selectedImage != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _saveAvatar,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[700],
-                    foregroundColor: Colors.white,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                    elevation: 8,
-                    shadowColor: Colors.red.withOpacity(0.5),
-                  ),
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 24, width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Text(
-                          'บันทึกรูปโปรไฟล์ใหม่',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1),
+            // ─── App Bar ───
+            _buildAppBar(),
+
+            // ─── Scrollable Content ───
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 16),
+
+                    // User info row
+                    _buildUserInfoRow(),
+                    const SizedBox(height: 16),
+
+                    // "This week" activity chart card
+                    _buildWeeklyCard(),
+                    const SizedBox(height: 12),
+
+                    // Statistics button
+                    _buildMenuTile(
+                      icon: Icons.bar_chart_rounded,
+                      label: 'Statistics',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const StatisticsPage(),
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Token History button
+                    _buildMenuTile(
+                      icon: Icons.history_rounded,
+                      label: 'Token History',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const TokenHistoryPage(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Leader Board Trophy section
+                    _buildTrophySection(),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
-
-            const SizedBox(height: 30),
-            
-            _buildMenuGroup([
-              MenuItem(title: 'Profile', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileEditPage()))),
-              MenuItem(title: 'About you', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AboutYouEditPage()))),
-            ]),
-            _buildMenuGroup([
-              MenuItem(title: 'Health Apps', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const DataSyncPage()))),
-              MenuItem(title: 'Push Notifications', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const NotificationSettingsPage()))),
-            ]),
-            _buildMenuGroup([
-              MenuItem(title: 'Privacy Controls', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyControlPage()))),
-            ]),
-            _buildMenuGroup([
-              MenuItem(title: 'Terms of Service', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsOfServicePage()))),
-              MenuItem(title: 'Privacy Policy', onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyPage()))),
-            ]),
-            _buildMenuGroup([
-              MenuItem(
-                title: 'Logout',
-                isLogout: true,
-                onTap: () async {
-                  final confirmed = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: const Color(0xFF2A2A2A),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      title: const Text(
-                        'ออกจากระบบ',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      content: Text(
-                        'คุณต้องการออกจากระบบใช่ไหม?',
-                        style: TextStyle(color: Colors.grey[400]),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: Text('ยกเลิก', style: TextStyle(color: Colors.grey[400])),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[700],
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: const Text('ออกจากระบบ', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirmed == true && mounted) {
-                    await AuthService().signOut();
-                    if (mounted) {
-                      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
-                    }
-                  }
-                },
-              ),
-            ]),
-            const SizedBox(height: 40),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return SizedBox(
-      height: 280, 
-      child: Stack(
-        alignment: Alignment.topCenter,
+  // ─────────────────────────────────────────────
+  //  App Bar: ← Profile ⚙
+  // ─────────────────────────────────────────────
+  Widget _buildAppBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+      child: Row(
         children: [
-          // White curved background
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
+          IconButton(
+            icon: const Icon(
+              Icons.arrow_back_rounded,
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+              size: 26,
             ),
+            onPressed: () => Navigator.pop(context),
           ),
-          // Back button
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.black, size: 28),
-                onPressed: () => Navigator.pop(context),
+          const Expanded(
+            child: Text(
+              'Profile',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          // User Name
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 24.0),
-              child: Text(
-                _userName,
-                style: const TextStyle(
-                  color: Colors.black,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+          IconButton(
+            icon: const Icon(
+              Icons.settings_rounded,
+              color: Colors.white,
+              size: 26,
             ),
-          ),
-          // Profile Avatar overlapping the bottom edge
-          Positioned(
-            bottom: 0,
-            child: GestureDetector(
-              onTap: _showImageSourcePicker,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Container(
-                    width: 200,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      color: Colors.grey[800],
-                    ),
-                    child: ProfileAvatar(
-                      avatarUrl: _avatarUrl,
-                      imageBytes: _imageBytes,
-                      radius: 96,
-                    ),
-                  ),
-                  // Edit Overlay
-                  Positioned(
-                    bottom: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: const [
-                          Icon(Icons.edit, size: 14, color: Colors.white),
-                          SizedBox(width: 4),
-                          Text(
-                            'Edit',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+              // Refresh profile in case avatar / name changed in Settings
+              _loadData();
+            },
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMenuGroup(List<MenuItem> items) {
-    return Container(
-      color: Colors.white,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListView.separated(
-        shrinkWrap: true,
-        padding: EdgeInsets.zero,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        separatorBuilder: (context, index) => const Divider(
-          height: 1,
-          indent: 20,
-          endIndent: 20,
-          color: Colors.black12,
+  // ─────────────────────────────────────────────
+  //  User info: avatar + "Good Day! Name" + token
+  // ─────────────────────────────────────────────
+  Widget _buildUserInfoRow() {
+    return Row(
+      children: [
+        ProfileAvatar(
+          avatarUrl: _avatarUrl,
+          radius: 28,
+          backgroundColor: Colors.grey[800],
         ),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 4,
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Good Day!',
+              style: TextStyle(color: Colors.grey[400], fontSize: 13),
             ),
-            title: Text(
-              item.title,
+            Text(
+              _fullName,
               style: const TextStyle(
-                color: Colors.black,
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+        const Spacer(),
+        // Token balance pill
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              Text(
+                '$_currentBalance',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 5),
+              Container(
+                width: 18,
+                height: 18,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.amber,
+                ),
+                child: const Icon(
+                  Icons.monetization_on,
+                  color: Colors.white,
+                  size: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  "This week" card with bar chart
+  // ─────────────────────────────────────────────
+  Widget _buildWeeklyCard() {
+    final maxStep = _weeklySteps.reduce((a, b) => a > b ? a : b);
+    const double barMaxHeight = 90.0;
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const StepCountPage(initialTab: 'W'),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F0F0F),
+          borderRadius: BorderRadius.circular(20),
+        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title
+          Text(
+            'This week',
+            style: TextStyle(
+              color: Colors.red[400],
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Stats row: Step | Calories | Distance
+          Row(
+            children: [
+              _buildStatLabel(
+                'Step',
+                _steps
+                    .toString()
+                    .replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ','),
+              ),
+              const SizedBox(width: 24),
+              _buildStatLabel(
+                'Calories',
+                '${_calories.toStringAsFixed(0)} kcal',
+              ),
+              const SizedBox(width: 24),
+              _buildStatLabel(
+                'Distance',
+                '${_distanceKm.toStringAsFixed(1)} km',
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Bar chart
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(_weeklySteps.length, (i) {
+              final ratio = maxStep > 0 ? _weeklySteps[i] / maxStep : 0.0;
+              final isActive = i == _activeDay;
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // Bar
+                  Container(
+                    width: 30,
+                    height: (barMaxHeight * ratio).clamp(4.0, barMaxHeight),
+                    decoration: BoxDecoration(
+                      color: isActive
+                          ? Colors.amber[600]
+                          : Colors.red[800],
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  // Day label
+                  Text(
+                    _weekDays[i],
+                    style: TextStyle(
+                      color: isActive
+                          ? Colors.amber[500]
+                          : Colors.grey[600],
+                      fontSize: 11,
+                      fontWeight:
+                          isActive ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              );
+            }),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+  Widget _buildStatLabel(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Colors.grey[500], fontSize: 11),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Menu tile (Statistics / Token History)
+  // ─────────────────────────────────────────────
+  Widget _buildMenuTile({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 22),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
               ),
             ),
-            trailing: item.isLogout
-                ? const Icon(Icons.exit_to_app, color: Colors.red, size: 24)
-                : const Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.black,
-                    size: 16,
-                  ),
-            onTap: item.onTap,
-          );
-        },
+            const Spacer(),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white70,
+              size: 16,
+            ),
+          ],
+        ),
       ),
+    );
+  }
+
+  // ─────────────────────────────────────────────
+  //  Leader Board Trophy section
+  // ─────────────────────────────────────────────
+  Widget _buildTrophySection() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const LeaderboardPage()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Image.asset(
+                  'assets/images/trophy.png',
+                  width: 36,
+                  height: 36,
+                  errorBuilder: (ctx, err, st) => const Icon(
+                    Icons.emoji_events_rounded,
+                    color: Colors.amber,
+                    size: 36,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Leader Board Trophy',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildTrophyItem(
+                  imagePath: 'assets/images/gold_medal.png',
+                  fallbackColor: Colors.amber,
+                  label: '1 win',
+                ),
+                _buildTrophyItem(
+                  imagePath: 'assets/images/silver_medal.png',
+                  fallbackColor: Colors.grey,
+                  label: '0 win',
+                ),
+                _buildTrophyItem(
+                  imagePath: 'assets/images/bronze_medal.png',
+                  fallbackColor: Colors.orange,
+                  label: '3 win',
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTrophyItem({
+    required String imagePath,
+    required Color fallbackColor,
+    required String label,
+  }) {
+    return Column(
+      children: [
+        Image.asset(
+          imagePath,
+          width: 58,
+          height: 58,
+          errorBuilder: (ctx, err, st) => Icon(
+            Icons.emoji_events_rounded,
+            color: fallbackColor,
+            size: 52,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 }

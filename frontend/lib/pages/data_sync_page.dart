@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/health_service.dart';
 
 class DataSyncPage extends StatefulWidget {
   const DataSyncPage({Key? key}) : super(key: key);
@@ -25,10 +26,26 @@ class _DataSyncPageState extends State<DataSyncPage> {
   }
 
   Future<void> _saveSettings(bool value) async {
+    bool finalValue = value;
+
+    if (value == true) {
+      // 1. Prompt system permission
+      bool authorized = await HealthService().authorize();
+      if (!authorized) {
+        // Fallback or deny
+        finalValue = false;
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('คุณปฎิเสธหรือสิทธิ์การเข้าถึงข้อมูลสุขภาพล้มเหลว')),
+          );
+        }
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('data_sync_enabled', value);
+    await prefs.setBool('data_sync_enabled', finalValue);
     setState(() {
-      _isSyncEnabled = value;
+      _isSyncEnabled = finalValue;
     });
   }
 

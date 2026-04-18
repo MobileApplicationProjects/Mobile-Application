@@ -57,5 +57,9 @@
 	<string>แอปต้องการบันทึกรูปภาพลงในคลัง</string>
 	<key>NSMotionUsageDescription</key>
 	<string>แอปต้องการเข้าถึงการเคลื่อนไหวเพื่อนับก้าวเดินของคุณ</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>แอปต้องการเข้าถึงตำแหน่งของคุณเพื่อแสดงบนแผนที่และคำนวณระยะทาง</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>แอปต้องการเข้าถึงตำแหน่งของคุณเพื่อแสดงบนแผนที่และคำนวณระยะทาง</string>
 </dict>
 </plist>

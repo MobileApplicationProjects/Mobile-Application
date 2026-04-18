@@ -137,6 +137,14 @@ class AccountModel {
     const [rows] = await pool.execute(query, [userId]);
     return rows;
   }
+
+  static async getBalance(userId) {
+    const [rows] = await pool.execute(
+      'SELECT current_balance FROM user_wallets WHERE user_id = ? LIMIT 1',
+      [userId]
+    );
+    return rows.length > 0 ? (rows[0].current_balance ?? 0) : 0;
+  }
 }
 
 module.exports = AccountModel;

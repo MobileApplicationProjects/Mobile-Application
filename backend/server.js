@@ -29,6 +29,12 @@ app.use('/api/uploads', uploadRoutes);
 const roomRoutes = require('./src/Rooms/RoomRoutes');
 app.use('/api/rooms', roomRoutes);
 
+const locationRoutes = require('./src/Location/LocationRoutes');
+app.use('/api/location', locationRoutes);
+
+const shareRoutes = require('./src/Share/ShareRoutes');
+app.use('/api/share', shareRoutes);
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

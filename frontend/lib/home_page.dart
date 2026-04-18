@@ -9,6 +9,11 @@ import 'services/health_service.dart';
 import 'services/challenge_service.dart';
 import 'services/room_service.dart';
 import 'services/notification_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import 'pages/map_page.dart';
+import 'pages/share_page.dart';
 import 'widgets/profile_avatar.dart';
 
 class HomePage extends StatefulWidget {
@@ -28,6 +33,7 @@ class _HomePageState extends State<HomePage> {
   int _streakCount = 0;
   String? _avatarUrl;
   String _userId = '';
+  int _stepGoal = 5000; // loaded from DB
   
   Map<String, dynamic>? _latestChallenge;
   final ChallengeService _challengeService = ChallengeService();
@@ -59,6 +65,8 @@ class _HomePageState extends State<HomePage> {
       _loadHealthData(),
       _loadLatestChallenge(),
       _loadLeaderboardForCard(),
+      _loadGoal(),
+      _loadBalance(),
     ]);
   }
 
@@ -83,6 +91,16 @@ class _HomePageState extends State<HomePage> {
       // Detect completion after health data loaded
       _checkChallengeCompletion();
     }
+  }
+
+  Future<void> _loadGoal() async {
+    final goal = await HealthService().fetchGoal();
+    if (mounted) setState(() => _stepGoal = goal);
+  }
+
+  Future<void> _loadBalance() async {
+    final balance = await AuthService().fetchBalance();
+    if (mounted) setState(() => _currentBalance = balance);
   }
 
   Future<void> _loadLatestChallenge() async {
@@ -188,6 +206,8 @@ class _HomePageState extends State<HomePage> {
               _loadHealthData(),
               _loadLatestChallenge(),
               _loadLeaderboardForCard(),
+              _loadGoal(),
+              _loadBalance(),
             ]);
           },
           child: SingleChildScrollView(
@@ -315,12 +335,12 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           _buildActivityRing(
-                            value: _steps / 5000.0,
+                            value: _stepGoal > 0 ? (_steps / _stepGoal).clamp(0.0, 1.0) : 0.0,
                             icon: Icons.directions_run_rounded,
                             iconColor: Colors.red[400]!,
                             valueText: '${_steps.toString().replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ',')}',
                             titleText: 'Step',
-                            subtitleText: 'Goal 5000',
+                            subtitleText: 'Goal $_stepGoal',
                             ringColor: Colors.orange[800]!,
                           ),
                           _buildActivityRing(
@@ -961,21 +981,31 @@ class _HomePageState extends State<HomePage> {
               icon: Icons.home_rounded,
               label: 'HOME',
               isActive: true,
+              onTap: () {},
             ),
             _buildNavItem(
               icon: Icons.location_on_rounded,
               label: 'MAP',
               isActive: false,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const MapPage()));
+              },
             ),
             _buildNavItem(
               icon: Icons.track_changes_rounded,
               label: 'CHALLENGE',
               isActive: false,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardPage()));
+              },
             ),
             _buildNavItem(
               icon: Icons.ios_share_rounded,
               label: 'SHARE',
               isActive: false,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const SharePage()));
+              },
             ),
           ],
         ),
@@ -987,10 +1017,13 @@ class _HomePageState extends State<HomePage> {
     required IconData icon,
     required String label,
     required bool isActive,
+    required VoidCallback onTap,
   }) {
     final color = isActive ? Colors.red[700]! : Colors.white;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, color: color, size: 28),
         const SizedBox(height: 4),
@@ -1003,6 +1036,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ],
+      ),
     );
   }
 }

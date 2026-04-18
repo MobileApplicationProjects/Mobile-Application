@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:health/health.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
@@ -29,15 +30,36 @@ class HealthService {
   ];
 
   Future<bool> authorize() async {
-    await Permission.activityRecognition.request();
-    bool? hasPermissions = await health.hasPermissions(
-      types,
-      permissions: permissions,
-    );
-    if (hasPermissions != true) {
-      return await health.requestAuthorization(types, permissions: permissions);
+    try {
+      // Activity Recognition is primarily for Android (Google Fit)
+      // On iOS, HealthKit handles step counting without this permission,
+      // and checking it without setup in Podfile can cause skips/crashes.
+      if (Platform.isAndroid) {
+        await Permission.activityRecognition.request();
+      }
+
+      bool? hasPermissions = await health.hasPermissions(
+        types,
+        permissions: permissions,
+      );
+
+      // On iOS, hasPermissions often returns null or false for READ permissions
+      // to protect user privacy. We must always call requestAuthorization if not true.
+      if (hasPermissions != true) {
+        bool authorized = await health.requestAuthorization(
+          types,
+          permissions: permissions,
+        );
+        if (!authorized) {
+          print("HealthKit Authorization failed or was previously denied.");
+        }
+        return authorized;
+      }
+      return true;
+    } catch (e) {
+      print("Error during HealthKit authorization: $e");
+      return false;
     }
-    return true;
   }
 
   Future<Map<String, dynamic>> fetchTodayMetrics() async {
@@ -87,7 +109,9 @@ class HealthService {
       final prefs = await SharedPreferences.getInstance();
       final isSyncEnabled = prefs.getBool('data_sync_enabled') ?? false;
       if (!isSyncEnabled) {
-        print('Sync aborted: Data sync is explicitly disabled by the user in settings.');
+        print(
+          'Sync aborted: Data sync is explicitly disabled by the user in settings.',
+        );
         return;
       }
 
@@ -96,7 +120,7 @@ class HealthService {
       if (token == null) return;
 
       final dateStr = DateFormat('dd/MM/yyyy').format(DateTime.now());
-      
+
       await http.post(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.healthSyncEndpoint}'),
         headers: {
@@ -126,10 +150,10 @@ class HealthService {
       final dateFormat = DateFormat('dd/MM/yyyy');
 
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.healthMetricsEndpoint}?startDate=${dateFormat.format(start)}&endDate=${dateFormat.format(now)}'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.healthMetricsEndpoint}?startDate=${dateFormat.format(start)}&endDate=${dateFormat.format(now)}',
+        ),
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -150,10 +174,10 @@ class HealthService {
       if (token == null) return {};
 
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.healthYearlyMetricsEndpoint}?year=$year'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.healthYearlyMetricsEndpoint}?year=$year',
+        ),
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -174,10 +198,10 @@ class HealthService {
       if (token == null) return 0;
 
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.healthStreakEndpoint}'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.healthStreakEndpoint}',
+        ),
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -199,9 +223,7 @@ class HealthService {
 
       final response = await http.get(
         Uri.parse('${ApiConstants.baseUrl}/health/statistics'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
@@ -211,6 +233,71 @@ class HealthService {
     } catch (e) {
       print('Fetch statistics failed: $e');
       return null;
+    }
+  }
+
+  /// Fetches graph + summary data for the step_count_page (period: D, W, M, Y)
+  Future<Map<String, dynamic>?> fetchSummary(String period) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) return null;
+
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/health/summary?period=$period'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+      return null;
+    } catch (e) {
+      print('Fetch summary failed: $e');
+      return null;
+    }
+  }
+
+  /// Fetches the user's current daily step goal from DB
+  Future<int> fetchGoal() async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) return 5000;
+
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/health/goal'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return (data['stepGoalDaily'] as num?)?.toInt() ?? 5000;
+      }
+      return 5000;
+    } catch (e) {
+      print('Fetch goal failed: $e');
+      return 5000;
+    }
+  }
+
+  /// Saves the user's daily step goal to DB
+  Future<bool> saveGoal(int goal) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) return false;
+
+      final response = await http.put(
+        Uri.parse('${ApiConstants.baseUrl}/health/goal'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'stepGoalDaily': goal}),
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Save goal failed: $e');
+      return false;
     }
   }
 }

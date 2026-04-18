@@ -9,5 +9,6 @@ router.get('/profile', verifyToken, AccountController.getProfile);
 router.put('/avatar', verifyToken, AccountController.updateAvatar);
 router.put('/profile', verifyToken, AccountController.updateProfile);
 router.get('/transactions', verifyToken, AccountController.getTransactions);
+router.get('/balance', verifyToken, AccountController.getBalance);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../admin/admin_add_reward_page.dart';
+import '../services/auth_service.dart';
 import '../services/reward_service.dart';
 
 class RewardsPage extends StatefulWidget {
@@ -22,8 +23,16 @@ class _RewardsPageState extends State<RewardsPage> {
   void initState() {
     super.initState();
     _currentBalance = widget.currentBalance;
-    super.initState();
     _loadRewards();
+    _refreshBalance();
+  }
+
+  Future<void> _refreshBalance() async {
+    try {
+      // ignore: avoid_dynamic_calls
+      final prefs = await (AuthService().fetchBalance());
+      if (mounted) setState(() => _currentBalance = prefs);
+    } catch (_) {}
   }
 
   Future<void> _loadRewards() async {

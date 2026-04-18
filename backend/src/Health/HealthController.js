@@ -88,6 +88,47 @@ class HealthController {
       return res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   }
+
+  static async getGoal(req, res) {
+    try {
+      const userId = req.user.id;
+      const goal = await HealthModel.getGoal(userId);
+      return res.status(200).json({ stepGoalDaily: goal });
+    } catch (error) {
+      console.error('Error in HealthController.getGoal:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
+
+  static async setGoal(req, res) {
+    try {
+      const userId = req.user.id;
+      const { stepGoalDaily } = req.body;
+      if (!stepGoalDaily || stepGoalDaily < 500) {
+        return res.status(400).json({ message: 'stepGoalDaily must be >= 500' });
+      }
+      await HealthModel.setGoal(userId, stepGoalDaily);
+      return res.status(200).json({ message: 'Goal saved', stepGoalDaily });
+    } catch (error) {
+      console.error('Error in HealthController.setGoal:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
+
+  static async getSummary(req, res) {
+    try {
+      const userId = req.user.id;
+      const { period } = req.query; // D, W, M, Y
+      if (!['D','W','M','Y'].includes(period)) {
+        return res.status(400).json({ message: 'period must be one of D, W, M, Y' });
+      }
+      const data = await HealthModel.getSummary(userId, period);
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error('Error in HealthController.getSummary:', error);
+      return res.status(500).json({ message: 'Internal server error', error: error.message });
+    }
+  }
 }
 
 module.exports = HealthController;

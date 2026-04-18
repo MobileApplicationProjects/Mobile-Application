@@ -35,4 +35,14 @@ class ApiConstants {
   static const String healthMetricsEndpoint = '/health/metrics';
   static const String healthYearlyMetricsEndpoint = '/health/metrics/yearly';
   static const String healthStreakEndpoint = '/health/metrics/streak';
+
+  // Location endpoints
+  static const String locationSessionsEndpoint = '/location/sessions';
+  static const String locationLatestSessionEndpoint = '/location/sessions/latest';
+  static String locationPointsEndpoint(String sessionId) => '/location/sessions/$sessionId/points';
+  static String locationEndSessionEndpoint(String sessionId) => '/location/sessions/$sessionId/end';
+
+  // Share endpoints
+  static const String shareTodayEndpoint = '/share/today';
+  static const String shareLogEndpoint = '/share/log';
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/health_service.dart';
 
 class SetGoalPage extends StatefulWidget {
   final int initialGoal;
@@ -11,41 +12,56 @@ class SetGoalPage extends StatefulWidget {
 
 class _SetGoalPageState extends State<SetGoalPage> {
   late int _currentGoal;
+  bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
     _currentGoal = widget.initialGoal;
+    // Also fetch from DB to make sure we show the latest
     _fetchCurrentGoal();
   }
 
-  // [API MOCK] ดึงข้อมูลเป้าหมายเดิมจากฐานข้อมูล (table: user_settings -> step_goal_daily)
   Future<void> _fetchCurrentGoal() async {
-    // TODO: เรียก API get_user_settings เพื่อนำเป้าหมายปัจจุบันมาโชว์
-    // final response = await http.get(Uri.parse('api/settings'));
-    // setState(() { _currentGoal = response.data.step_goal_daily; });
+    final goal = await HealthService().fetchGoal();
+    if (mounted) setState(() => _currentGoal = goal);
   }
 
-  // [API MOCK] อัปเดตเป้าหมายไปยังฐานข้อมูล
-  Future<void> _updateGoal(int newGoal) async {
-    // TODO: เรียก API update_user_settings.step_goal_daily
-    // await http.post('api/settings/update', body: {'step_goal_daily': newGoal});
-    print('Mock API: Goal updated to $newGoal');
+  Future<void> _saveGoal() async {
+    if (_isSaving) return;
+    setState(() => _isSaving = true);
+
+    final success = await HealthService().saveGoal(_currentGoal);
+
+    if (!mounted) return;
+    setState(() => _isSaving = false);
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Goal saved: $_currentGoal steps/day'),
+          backgroundColor: Colors.green[700],
+        ),
+      );
+      // Return the new goal to the caller
+      Navigator.pop(context, _currentGoal);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save goal. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _increaseGoal() {
-    setState(() {
-      _currentGoal += 500;
-    });
-    _updateGoal(_currentGoal);
+    setState(() => _currentGoal += 500);
   }
 
   void _decreaseGoal() {
     if (_currentGoal > 500) {
-      setState(() {
-        _currentGoal -= 500;
-      });
-      _updateGoal(_currentGoal);
+      setState(() => _currentGoal -= 500);
     }
   }
 
@@ -90,7 +106,7 @@ class _SetGoalPageState extends State<SetGoalPage> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    "Set your goal base how active\nyou'd like to be, each day.",
+                    "Set your goal based on how active\nyou'd like to be, each day.",
                     style: TextStyle(
                       color: Colors.grey[400],
                       fontSize: 14,
@@ -116,8 +132,8 @@ class _SetGoalPageState extends State<SetGoalPage> {
                         GestureDetector(
                           onTap: _decreaseGoal,
                           child: Container(
-                            width: 36,
-                            height: 36,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: Colors.red[800],
                               shape: BoxShape.circle,
@@ -125,6 +141,7 @@ class _SetGoalPageState extends State<SetGoalPage> {
                             child: const Icon(
                               Icons.remove,
                               color: Colors.white,
+                              size: 22,
                             ),
                           ),
                         ),
@@ -150,13 +167,13 @@ class _SetGoalPageState extends State<SetGoalPage> {
                         GestureDetector(
                           onTap: _increaseGoal,
                           child: Container(
-                            width: 36,
-                            height: 36,
+                            width: 44,
+                            height: 44,
                             decoration: BoxDecoration(
                               color: Colors.red[800],
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.add, color: Colors.white),
+                            child: const Icon(Icons.add, color: Colors.white, size: 22),
                           ),
                         ),
                       ],
@@ -168,6 +185,38 @@ class _SetGoalPageState extends State<SetGoalPage> {
                         color: Colors.grey[300],
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+
+                    // --- SAVE BUTTON ---
+                    GestureDetector(
+                      onTap: _isSaving ? null : _saveGoal,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 40),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        decoration: BoxDecoration(
+                          color: _isSaving ? Colors.grey : Colors.red[800],
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        alignment: Alignment.center,
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Save Goal',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
                       ),
                     ),
                   ],

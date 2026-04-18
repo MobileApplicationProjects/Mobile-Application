@@ -57,10 +57,12 @@ class _ProfilePageState extends State<ProfilePage> {
           _steps = healthData['steps'] ?? 0;
           _calories = (healthData['calories'] ?? 0.0).toDouble();
           _distanceKm = meters / 1000.0;
-          // Update today's bar with actual steps
           _weeklySteps[_activeDay] = _steps.toDouble();
           _isLoading = false;
         });
+        // Refresh balance from wallet (source of truth)
+        final balance = await AuthService().fetchBalance();
+        if (mounted) setState(() => _currentBalance = balance);
       }
     } catch (e) {
       if (mounted) {

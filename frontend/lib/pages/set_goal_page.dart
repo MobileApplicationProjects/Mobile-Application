@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/health_service.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 class SetGoalPage extends StatefulWidget {
   final int initialGoal;
@@ -173,7 +174,11 @@ class _SetGoalPageState extends State<SetGoalPage> {
                               color: Colors.red[800],
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.add, color: Colors.white, size: 22),
+                            child: const Icon(
+                              Icons.add,
+                              color: Colors.white,
+                              size: 22,
+                            ),
                           ),
                         ),
                       ],
@@ -226,79 +231,7 @@ class _SetGoalPageState extends State<SetGoalPage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
-    );
-  }
-
-  // Reused Bottom Navigation Bar
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_rounded,
-              label: 'HOME',
-              isActive: true,
-              onTap: () {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-            ),
-            _buildNavItem(
-              icon: Icons.location_on_rounded,
-              label: 'MAP',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.track_changes_rounded,
-              label: 'CHALLENGE',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.ios_share_rounded,
-              label: 'SHARE',
-              isActive: false,
-              onTap: () {},
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 0),
     );
   }
 }

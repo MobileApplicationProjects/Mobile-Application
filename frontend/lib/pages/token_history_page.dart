@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'package:intl/intl.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 class TokenHistoryItem {
   final String time;
@@ -38,12 +39,14 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
 
     try {
       final transactions = await AuthService().fetchTransactions();
-      
+
       final List<TokenHistoryItem> parsedHistory = transactions.map((t) {
         // Parse time
-        final date = DateTime.tryParse(t['created_at'].toString())?.toLocal() ?? DateTime.now();
+        final date =
+            DateTime.tryParse(t['created_at'].toString())?.toLocal() ??
+            DateTime.now();
         final timeString = DateFormat('HH:mm').format(date);
-        
+
         // Map transaction_type to readable title
         String rawType = t['transaction_type'] ?? 'Unknown';
         String title = rawType;
@@ -56,7 +59,9 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
         }
 
         // Amount math
-        final amountNum = t['amount'] is num ? t['amount'] as num : int.tryParse(t['amount'].toString()) ?? 0;
+        final amountNum = t['amount'] is num
+            ? t['amount'] as num
+            : int.tryParse(t['amount'].toString()) ?? 0;
         final amountString = amountNum > 0 ? '+$amountNum' : '$amountNum';
 
         return TokenHistoryItem(
@@ -87,7 +92,11 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -115,7 +124,10 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
                   )
                 : ListView.separated(
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
                     itemCount: _history.length,
                     separatorBuilder: (context, index) => _buildDivider(),
                     itemBuilder: (context, index) {
@@ -130,7 +142,7 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
           ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 0),
     );
   }
 
@@ -184,11 +196,7 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
   }
 
   Widget _buildDivider() {
-    return Divider(
-      color: Colors.grey[800],
-      height: 1,
-      thickness: 1,
-    );
+    return Divider(color: Colors.grey[800], height: 1, thickness: 1);
   }
 
   Widget _buildTokenIcon() {
@@ -198,18 +206,9 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Positioned(
-            top: 20,
-            child: _buildCoinDisk(),
-          ),
-          Positioned(
-            top: 10,
-            child: _buildCoinDisk(),
-          ),
-          Positioned(
-            top: 0,
-            child: _buildCoinDisk(),
-          ),
+          Positioned(top: 20, child: _buildCoinDisk()),
+          Positioned(top: 10, child: _buildCoinDisk()),
+          Positioned(top: 0, child: _buildCoinDisk()),
         ],
       ),
     );
@@ -223,75 +222,6 @@ class _TokenHistoryPageState extends State<TokenHistoryPage> {
         color: const Color(0xFFFDE047), // Yellow color for coin
         border: Border.all(color: Colors.black, width: 1.5),
         borderRadius: BorderRadius.circular(50),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_rounded,
-              label: 'HOME',
-              isActive: true,
-              onTap: () => Navigator.popUntil(context, (route) => route.isFirst),
-            ),
-            _buildNavItem(
-              icon: Icons.location_on_rounded,
-              label: 'MAP',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.track_changes_rounded,
-              label: 'CHALLENGE',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.ios_share_rounded,
-              label: 'SHARE',
-              isActive: false,
-              onTap: () {},
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
       ),
     );
   }

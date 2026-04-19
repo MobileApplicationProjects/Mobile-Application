@@ -15,6 +15,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'pages/map_page.dart';
 import 'pages/share_page.dart';
 import 'widgets/profile_avatar.dart';
+import 'widgets/custom_bottom_nav_bar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -34,7 +35,7 @@ class _HomePageState extends State<HomePage> {
   String? _avatarUrl;
   String _userId = '';
   int _stepGoal = 5000; // loaded from DB
-  
+
   Map<String, dynamic>? _latestChallenge;
   final ChallengeService _challengeService = ChallengeService();
   final RoomService _roomService = RoomService();
@@ -80,9 +81,9 @@ class _HomePageState extends State<HomePage> {
     final streak = await HealthService().fetchStreak();
     if (mounted) {
       setState(() {
-        _steps = healthData['steps'] ?? 0;
+        _steps = 100;
         _calories = (healthData['calories'] ?? 0.0).toDouble();
-        
+
         // Convert distance from meters to km and format to 1 decimal place
         double meters = (healthData['distance'] ?? 0.0).toDouble();
         _distanceKm = meters / 1000.0;
@@ -123,17 +124,19 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _checkChallengeCompletion() async {
     if (_latestChallenge == null || _isClaiming) return;
-    
+
     // Check if already claimed
     if (_latestChallenge!['user_status'] == 'Claimed') return;
 
-    final targetType = _latestChallenge!['target_type']; // 'Steps', 'Distance', 'Time'
+    final targetType =
+        _latestChallenge!['target_type']; // 'Steps', 'Distance', 'Time'
     final targetValue = (_latestChallenge!['target_value'] as num).toInt();
-    
+
     bool isCompleted = false;
     if (targetType == 'Steps' && _steps >= targetValue) {
       isCompleted = true;
-    } else if (targetType == 'Distance' && (_distanceKm * 1000) >= targetValue) {
+    } else if (targetType == 'Distance' &&
+        (_distanceKm * 1000) >= targetValue) {
       isCompleted = true;
     }
 
@@ -147,18 +150,23 @@ class _HomePageState extends State<HomePage> {
     setState(() => _isClaiming = true);
 
     try {
-      final result = await _challengeService.claimChallenge(_latestChallenge!['id']);
+      final result = await _challengeService.claimChallenge(
+        _latestChallenge!['id'],
+      );
       if (mounted) {
         // Show notification
         await _notificationService.showNotification(
           title: 'Challenge สำเร็จ! 🎉',
-          body: 'คุณได้รับ ${_latestChallenge!['reward_amount']} Token จากภารกิจ ${_latestChallenge!['title']}',
+          body:
+              'คุณได้รับ ${_latestChallenge!['reward_amount']} Token จากภารกิจ ${_latestChallenge!['title']}',
         );
 
         setState(() {
-          _currentBalance = (result['newBalance'] as num?)?.toInt() ?? 
-                            (_currentBalance + (_latestChallenge!['reward_amount'] as num).toInt());
-          _latestChallenge!['user_status'] = 'Claimed'; 
+          _currentBalance =
+              (result['newBalance'] as num?)?.toInt() ??
+              (_currentBalance +
+                  (_latestChallenge!['reward_amount'] as num).toInt());
+          _latestChallenge!['user_status'] = 'Claimed';
           _isClaiming = false;
         });
       }
@@ -195,7 +203,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1D1D1D),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 0),
       body: SafeArea(
         child: RefreshIndicator(
           color: Colors.red[700],
@@ -211,7 +219,9 @@ class _HomePageState extends State<HomePage> {
             ]);
           },
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,231 +240,241 @@ class _HomePageState extends State<HomePage> {
                       _loadLatestChallenge();
                     });
                   },
-                child: Row(
-                  children: [
-                    ProfileAvatar(
-                      avatarUrl: _avatarUrl,
-                      radius: 26,
-                      backgroundColor: Colors.grey[800],
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hello, $_firstName',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'Keep Going',
-                          style: TextStyle(
-                            color: Colors.grey[400],
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            '$_currentBalance',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(
-                            width: 16,
-                            height: 16,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.amber,
-                            ),
-                            child: const Icon(
-                              Icons.monetization_on,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(
-                      Icons.notifications_none_rounded,
-                      color: Colors.white,
-                      size: 28,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // --- TODAY ACTIVITY SECTION ---
-              GestureDetector(
-                onTap: () {
-                  // TODO: Link to activity page
-                },
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F0F0F),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      Text(
-                        'Today',
-                        style: TextStyle(
-                          color: Colors.red[700],
-                          fontSize: 25,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      ProfileAvatar(
+                        avatarUrl: _avatarUrl,
+                        radius: 26,
+                        backgroundColor: Colors.grey[800],
                       ),
-                      const SizedBox(height: 32),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      const SizedBox(width: 12),
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildActivityRing(
-                            value: _stepGoal > 0 ? (_steps / _stepGoal).clamp(0.0, 1.0) : 0.0,
-                            icon: Icons.directions_run_rounded,
-                            iconColor: Colors.red[400]!,
-                            valueText: '${_steps.toString().replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ',')}',
-                            titleText: 'Step',
-                            subtitleText: 'Goal $_stepGoal',
-                            ringColor: Colors.orange[800]!,
+                          Text(
+                            'Hello, $_firstName',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          _buildActivityRing(
-                            value: (_calories / 500.0).clamp(0.0, 1.0), // Assuming 500 kcal is goal
-                            icon: Icons.local_fire_department_rounded,
-                            iconColor: Colors.red[400]!,
-                            valueText: '${_calories.toStringAsFixed(0)} kcal',
-                            titleText: 'Calories',
-                            ringColor: Colors.orange[800]!,
-                          ),
-                          _buildActivityRing(
-                            value: (_distanceKm / 5.0).clamp(0.0, 1.0), // Assuming 5 km is goal
-                            icon: Icons.arrow_forward_rounded,
-                            iconColor: Colors.red[400]!,
-                            valueText: '${_distanceKm.toStringAsFixed(1)} km',
-                            titleText: 'Distance',
-                            ringColor: Colors.orange[800]!,
+                          Text(
+                            'Keep Going',
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 13,
+                            ),
                           ),
                         ],
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              '$_currentBalance',
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.amber,
+                              ),
+                              child: const Icon(
+                                Icons.monetization_on,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(
+                        Icons.notifications_none_rounded,
+                        color: Colors.white,
+                        size: 28,
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-              // --- REWARDS & STREAK SECTION ---
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RewardsPage(
-                              isAdmin: _role == 'admin',
-                              currentBalance: _currentBalance,
+                // --- TODAY ACTIVITY SECTION ---
+                GestureDetector(
+                  onTap: () {
+                    // TODO: Link to activity page
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F0F0F),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Today',
+                          style: TextStyle(
+                            color: Colors.red[700],
+                            fontSize: 25,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildActivityRing(
+                              value: _stepGoal > 0
+                                  ? (_steps / _stepGoal).clamp(0.0, 1.0)
+                                  : 0.0,
+                              icon: Icons.directions_run_rounded,
+                              iconColor: Colors.red[400]!,
+                              valueText:
+                                  '${_steps.toString().replaceAll(RegExp(r'\B(?=(\d{3})+(?!\d))'), ',')}',
+                              titleText: 'Step',
+                              subtitleText: 'Goal $_stepGoal',
+                              ringColor: Colors.orange[800]!,
                             ),
-                          ),
-                        ).then((_) {
-                          _loadProfile(); // Reload balance
-                        });
-                      },
-                      child: _buildCard(
-                        imagePath: 'assets/images/medal.png',
-                        topText: '$_currentBalance Token',
-                        bottomText: 'Rewards',
-                      ),
+                            _buildActivityRing(
+                              value: (_calories / 500.0).clamp(
+                                0.0,
+                                1.0,
+                              ), // Assuming 500 kcal is goal
+                              icon: Icons.local_fire_department_rounded,
+                              iconColor: Colors.red[400]!,
+                              valueText: '${_calories.toStringAsFixed(0)} kcal',
+                              titleText: 'Calories',
+                              ringColor: Colors.orange[800]!,
+                            ),
+                            _buildActivityRing(
+                              value: (_distanceKm / 5.0).clamp(
+                                0.0,
+                                1.0,
+                              ), // Assuming 5 km is goal
+                              icon: Icons.arrow_forward_rounded,
+                              iconColor: Colors.red[400]!,
+                              valueText: '${_distanceKm.toStringAsFixed(1)} km',
+                              titleText: 'Distance',
+                              ringColor: Colors.orange[800]!,
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const StreakPage(),
-                          ),
-                        ).then((_) {
-                          _loadHealthData(); // Reload streak
-                        });
-                      },
-                      child: _buildCard(
-                        imagePath: 'assets/images/fire.png',
-                        topText: '$_streakCount days',
-                        bottomText: 'Streak',
+                ),
+
+                const SizedBox(height: 24),
+
+                // --- REWARDS & STREAK SECTION ---
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => RewardsPage(
+                                isAdmin: _role == 'admin',
+                                currentBalance: _currentBalance,
+                              ),
+                            ),
+                          ).then((_) {
+                            _loadProfile(); // Reload balance
+                          });
+                        },
+                        child: _buildCard(
+                          imagePath: 'assets/images/medal.png',
+                          topText: '$_currentBalance Token',
+                          bottomText: 'Rewards',
+                        ),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // --- LEADERBOARD CARD ---
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LeaderboardPage(),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StreakPage(),
+                            ),
+                          ).then((_) {
+                            _loadHealthData(); // Reload streak
+                          });
+                        },
+                        child: _buildCard(
+                          imagePath: 'assets/images/fire.png',
+                          topText: '$_streakCount days',
+                          bottomText: 'Streak',
+                        ),
+                      ),
                     ),
-                  ).then((_) {
-                    _loadLeaderboardForCard(); // Reload leaderboard data
-                  });
-                },
-                child: _buildLeaderboardCard(),
-              ),
+                  ],
+                ),
+                const SizedBox(height: 24),
 
-              const SizedBox(height: 24),
+                // --- LEADERBOARD CARD ---
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LeaderboardPage(),
+                      ),
+                    ).then((_) {
+                      _loadLeaderboardForCard(); // Reload leaderboard data
+                    });
+                  },
+                  child: _buildLeaderboardCard(),
+                ),
 
-              // --- CHALLENGE CARD ---
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChallengePage(isAdmin: _role == 'admin'),
-                    ),
-                  ).then((_) {
-                    _loadLatestChallenge();
-                  });
-                },
-                child: _buildChallengeCard(),
-              ),
+                const SizedBox(height: 24),
 
-              const SizedBox(height: 32),
-            ],
+                // --- CHALLENGE CARD ---
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ChallengePage(isAdmin: _role == 'admin'),
+                      ),
+                    ).then((_) {
+                      _loadLatestChallenge();
+                    });
+                  },
+                  child: _buildChallengeCard(),
+                ),
+
+                const SizedBox(height: 32),
+              ],
+            ),
           ),
         ),
       ),
-    ),
     );
   }
 
@@ -591,7 +611,9 @@ class _HomePageState extends State<HomePage> {
       _rooms = rooms;
 
       // Find all accepted rooms
-      final acceptedRooms = rooms.where((r) => r['member_status'] == 'accepted').toList();
+      final acceptedRooms = rooms
+          .where((r) => r['member_status'] == 'accepted')
+          .toList();
 
       if (acceptedRooms.isNotEmpty) {
         // Fetch leaderboards for all accepted rooms concurrently
@@ -698,7 +720,9 @@ class _HomePageState extends State<HomePage> {
         child: const Center(
           child: SizedBox(
             height: 80,
-            child: Center(child: CircularProgressIndicator(color: Colors.black)),
+            child: Center(
+              child: CircularProgressIndicator(color: Colors.black),
+            ),
           ),
         ),
       );
@@ -831,16 +855,24 @@ class _HomePageState extends State<HomePage> {
     if (_isLoadingChallenge) {
       return Container(
         padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-        child: const Center(child: CircularProgressIndicator(color: Colors.black)),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.black),
+        ),
       );
     }
 
     final bool hasChallenge = _latestChallenge != null;
-    final bool isClaimed = hasChallenge && _latestChallenge!['user_status'] == 'Claimed';
+    final bool isClaimed =
+        hasChallenge && _latestChallenge!['user_status'] == 'Claimed';
 
     final title = hasChallenge ? _latestChallenge!['title'] : 'ไม่มี Challenge';
-    final description = hasChallenge ? (_latestChallenge!['description'] ?? 'ไม่มีรายละเอียด') : 'คุณทำภารกิจเสร็จหมดแล้ว หรือยังไม่มีภารกิจใหม่';
+    final description = hasChallenge
+        ? (_latestChallenge!['description'] ?? 'ไม่มีรายละเอียด')
+        : 'คุณทำภารกิจเสร็จหมดแล้ว หรือยังไม่มีภารกิจใหม่';
     final reward = hasChallenge ? _latestChallenge!['reward_amount'] : 0;
 
     return Container(
@@ -866,11 +898,7 @@ class _HomePageState extends State<HomePage> {
               ),
               const Spacer(),
               if (isClaimed)
-                const Icon(
-                  Icons.check_circle,
-                  color: Colors.green,
-                  size: 24,
-                )
+                const Icon(Icons.check_circle, color: Colors.green, size: 24)
               else
                 const Icon(
                   Icons.arrow_forward_rounded,
@@ -915,7 +943,9 @@ class _HomePageState extends State<HomePage> {
                   Text(
                     '$reward',
                     style: TextStyle(
-                      color: isClaimed ? Colors.green : (hasChallenge ? Colors.black : Colors.grey[400]),
+                      color: isClaimed
+                          ? Colors.green
+                          : (hasChallenge ? Colors.black : Colors.grey[400]),
                       fontSize: 24,
                       fontWeight: FontWeight.w900,
                     ),
@@ -965,78 +995,4 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_rounded,
-              label: 'HOME',
-              isActive: true,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.location_on_rounded,
-              label: 'MAP',
-              isActive: false,
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const MapPage()));
-              },
-            ),
-            _buildNavItem(
-              icon: Icons.track_changes_rounded,
-              label: 'CHALLENGE',
-              isActive: false,
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const LeaderboardPage()));
-              },
-            ),
-            _buildNavItem(
-              icon: Icons.ios_share_rounded,
-              label: 'SHARE',
-              isActive: false,
-              onTap: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const SharePage()));
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 28),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-      ),
-    );
-  }
 }

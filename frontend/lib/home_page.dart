@@ -81,7 +81,7 @@ class _HomePageState extends State<HomePage> {
     final streak = await HealthService().fetchStreak();
     if (mounted) {
       setState(() {
-        _steps = 100;
+        _steps = healthData['steps'] ?? 5000;
         _calories = (healthData['calories'] ?? 0.0).toDouble();
 
         // Convert distance from meters to km and format to 1 decimal place
@@ -994,5 +994,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
 }

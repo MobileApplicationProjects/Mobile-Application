@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../admin/admin_add_reward_page.dart';
 import '../services/auth_service.dart';
 import '../services/reward_service.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 class RewardsPage extends StatefulWidget {
   final bool isAdmin;
@@ -106,7 +107,7 @@ class _RewardsPageState extends State<RewardsPage> {
             ),
         ],
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -486,66 +487,6 @@ class _RewardsPageState extends State<RewardsPage> {
     );
   }
 
-  Widget _buildBottomNavigationBar() {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_rounded,
-              label: 'HOME',
-              isActive: true,
-            ),
-            _buildNavItem(
-              icon: Icons.location_on_rounded,
-              label: 'MAP',
-              isActive: false,
-            ),
-            _buildNavItem(
-              icon: Icons.track_changes_rounded,
-              label: 'CHALLENGE',
-              isActive: false,
-            ),
-            _buildNavItem(
-              icon: Icons.ios_share_rounded,
-              label: 'SHARE',
-              isActive: false,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-  }) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 28),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 10,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ],
-    );
-  }
 
   void _showRewardDetails(Map<String, dynamic> reward) {
     final String title = reward['title'] ?? '';

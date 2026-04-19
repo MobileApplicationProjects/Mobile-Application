@@ -5,6 +5,7 @@ import '../widgets/create_room_dialog.dart';
 import '../widgets/profile_avatar.dart';
 import 'map_page.dart';
 import 'share_page.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -153,14 +154,20 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
   Future<void> _confirmDeleteRoom() async {
     if (_selectedRoom == null) return;
-    
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF2A2A2A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Room', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to delete "${_selectedRoom['name']}"? This action cannot be undone.', style: TextStyle(color: Colors.grey[400])),
+        title: const Text(
+          'Delete Room',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${_selectedRoom['name']}"? This action cannot be undone.',
+          style: TextStyle(color: Colors.grey[400]),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -169,7 +176,13 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
-            child: const Text('Delete', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -180,13 +193,17 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
       try {
         await _roomService.deleteRoom(_selectedRoom['id']);
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Room deleted successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Room deleted successfully!')),
+        );
         _selectedRoom = null;
         await _loadRooms();
       } catch (e) {
         if (!mounted) return;
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
@@ -299,7 +316,10 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
               else ...[
                 // Room Selector Row
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -331,8 +351,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                 });
                                 _loadLeaderboard(newValue['id']);
                               },
-                              items: _rooms.map<DropdownMenuItem<dynamic>>((room) {
-                                bool isInvited = room['member_status'] == 'invited';
+                              items: _rooms.map<DropdownMenuItem<dynamic>>((
+                                room,
+                              ) {
+                                bool isInvited =
+                                    room['member_status'] == 'invited';
                                 return DropdownMenuItem<dynamic>(
                                   value: room,
                                   child: Text(
@@ -344,11 +367,17 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                           ),
                         ),
                       ),
-                      if (_selectedRoom != null && _selectedRoom['created_by'] == _currentUserId)
+                      if (_selectedRoom != null &&
+                          _selectedRoom['created_by'] == _currentUserId)
                         PopupMenuButton<String>(
-                          icon: const Icon(Icons.more_vert, color: Colors.white),
+                          icon: const Icon(
+                            Icons.more_vert,
+                            color: Colors.white,
+                          ),
                           color: const Color(0xFF222222),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                           onSelected: (value) {
                             if (value == 'edit') {
                               _showEditRoomDialog();
@@ -356,28 +385,45 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                               _confirmDeleteRoom();
                             }
                           },
-                          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
-                            const PopupMenuItem<String>(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit, color: Colors.white, size: 20),
-                                  SizedBox(width: 12),
-                                  Text('Edit Name', style: TextStyle(color: Colors.white)),
-                                ],
-                              ),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete, color: Colors.redAccent, size: 20),
-                                  SizedBox(width: 12),
-                                  Text('Delete Room', style: TextStyle(color: Colors.redAccent)),
-                                ],
-                              ),
-                            ),
-                          ],
+                          itemBuilder: (BuildContext context) =>
+                              <PopupMenuEntry<String>>[
+                                const PopupMenuItem<String>(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.edit,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        'Edit Name',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem<String>(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.delete,
+                                        color: Colors.redAccent,
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 12),
+                                      Text(
+                                        'Delete Room',
+                                        style: TextStyle(
+                                          color: Colors.redAccent,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                         ),
                     ],
                   ),
@@ -501,7 +547,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
               ],
 
               // Bottom Navigation Bar
-              _buildBottomNavigationBar(),
+              const CustomBottomNavBar(currentIndex: -1),
             ],
           ),
         ),
@@ -672,80 +718,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
           ),
           const SizedBox(width: 8),
           Icon(Icons.directions_run_rounded, color: Colors.grey[800], size: 18),
-        ],
-      ),
-    );
-  }
-
-  // Consistent Bottom Navigation Bar
-  Widget _buildBottomNavigationBar() {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_rounded,
-              label: 'HOME',
-              isActive: false,
-              onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
-            ),
-            _buildNavItem(
-              icon: Icons.location_on_rounded,
-              label: 'MAP',
-              isActive: false,
-              onTap: () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MapPage()));
-              },
-            ),
-            _buildNavItem(
-              icon: Icons.track_changes_rounded,
-              label: 'CHALLENGE',
-              isActive: true,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.ios_share_rounded,
-              label: 'SHARE',
-              isActive: false,
-              onTap: () {
-                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const SharePage()));
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
         ],
       ),
     );

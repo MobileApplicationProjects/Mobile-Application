@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/health_service.dart';
 import 'set_goal_page.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 class ChartBarData {
   final String label;
@@ -58,8 +59,14 @@ class _StepCountPageState extends State<StepCountPage> {
     if (!mounted) return;
 
     if (data != null) {
-      final bars = (data['chartBars'] as List?)?.cast<Map<String, dynamic>>() ?? [];
-      final maxVal = bars.fold<double>(0, (m, b) => (b['value'] as num).toDouble() > m ? (b['value'] as num).toDouble() : m);
+      final bars =
+          (data['chartBars'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final maxVal = bars.fold<double>(
+        0,
+        (m, b) => (b['value'] as num).toDouble() > m
+            ? (b['value'] as num).toDouble()
+            : m,
+      );
       final chartData = bars.asMap().entries.map((entry) {
         final i = entry.key;
         final b = entry.value;
@@ -83,7 +90,13 @@ class _StepCountPageState extends State<StepCountPage> {
     } else {
       // fallback empty state
       setState(() {
-        _title = tab == 'D' ? 'Today' : tab == 'W' ? 'This week' : tab == 'M' ? 'This month' : 'This year';
+        _title = tab == 'D'
+            ? 'Today'
+            : tab == 'W'
+            ? 'This week'
+            : tab == 'M'
+            ? 'This month'
+            : 'This year';
         _totalSteps = 0;
         _totalCalories = 0;
         _totalDistance = 0;
@@ -105,9 +118,12 @@ class _StepCountPageState extends State<StepCountPage> {
   String get _avgStepStr {
     if (_totalSteps == 0) return '0';
     int divider = 1;
-    if (_activeTab == 'W') divider = 7;
-    else if (_activeTab == 'M') divider = 30;
-    else if (_activeTab == 'Y') divider = 365;
+    if (_activeTab == 'W')
+      divider = 7;
+    else if (_activeTab == 'M')
+      divider = 30;
+    else if (_activeTab == 'Y')
+      divider = 365;
     final avg = (_totalSteps / divider).round();
     return avg.toString().replaceAllMapped(
       RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
@@ -295,7 +311,7 @@ class _StepCountPageState extends State<StepCountPage> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 0),
     );
   }
 
@@ -409,7 +425,7 @@ class _StepCountPageState extends State<StepCountPage> {
   Widget _buildBar(String day, double percent, {required bool isHighlight}) {
     // Ensure a minimum height so empty data still looks like a 0-state pill
     final double barHeight = (130 * percent) < 4 ? 4 : (130 * percent);
-    
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
@@ -423,12 +439,12 @@ class _StepCountPageState extends State<StepCountPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          day.toUpperCase(), 
+          day.toUpperCase(),
           style: TextStyle(
-            color: isHighlight ? Colors.orange[400] : Colors.grey[500], 
+            color: isHighlight ? Colors.orange[400] : Colors.grey[500],
             fontSize: 12,
-            fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal
-          )
+            fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
         const SizedBox(height: 4),
         Container(
@@ -440,78 +456,6 @@ class _StepCountPageState extends State<StepCountPage> {
           ),
         ),
       ],
-    );
-  }
-
-  // Reused Bottom Navigation Bar
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_rounded,
-              label: 'HOME',
-              isActive: true,
-              onTap: () {
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-            ),
-            _buildNavItem(
-              icon: Icons.location_on_rounded,
-              label: 'MAP',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.track_changes_rounded,
-              label: 'CHALLENGE',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.ios_share_rounded,
-              label: 'SHARE',
-              isActive: false,
-              onTap: () {},
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

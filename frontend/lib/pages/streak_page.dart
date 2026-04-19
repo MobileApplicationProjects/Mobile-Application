@@ -4,6 +4,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../services/health_service.dart';
 import '../services/auth_service.dart';
 import 'challenge_page.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 
 class StreakPage extends StatefulWidget {
@@ -103,7 +104,7 @@ class _StreakPageState extends State<StreakPage> {
         ),
         centerTitle: true,
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 0),
       body: SafeArea(
         child: _isLoading 
           ? const Center(child: CircularProgressIndicator(color: Colors.orange))
@@ -519,53 +520,6 @@ class _StreakPageState extends State<StreakPage> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(icon: Icons.home_rounded, label: 'HOME', isActive: true),
-            _buildNavItem(icon: Icons.location_on_rounded, label: 'MAP', isActive: false),
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ChallengePage(isAdmin: _isAdmin),
-                  ),
-                );
-              },
-              child: _buildNavItem(icon: Icons.track_changes_rounded, label: 'CHALLENGE', isActive: false),
-            ),
-            _buildNavItem(icon: Icons.ios_share_rounded, label: 'SHARE', isActive: false),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({required IconData icon, required String label, required bool isActive}) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, color: color, size: 28),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800),
-        ),
-      ],
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/health_service.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -29,7 +30,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
 
     try {
       final stats = await HealthService().fetchStatistics();
-      
+
       if (stats != null) {
         setState(() {
           _avgActivity = {
@@ -69,11 +70,7 @@ class _StatisticsPageState extends State<StatisticsPage> {
         'Max Calories': '0',
         'Max Distance': '0',
       };
-      _tokenStats = {
-        'Avg token/day': '0',
-        'Max token': '0',
-        'Max pay': '0',
-      };
+      _tokenStats = {'Avg token/day': '0', 'Max token': '0', 'Max pay': '0'};
       _isLoading = false;
     });
   }
@@ -86,7 +83,11 @@ class _StatisticsPageState extends State<StatisticsPage> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 28),
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: Colors.white,
+            size: 28,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -101,34 +102,26 @@ class _StatisticsPageState extends State<StatisticsPage> {
       ),
       body: SafeArea(
         child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: Colors.red),
-              )
+            ? const Center(child: CircularProgressIndicator(color: Colors.red))
             : SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 16.0,
+                ),
                 child: Column(
                   children: [
-                    _buildStatCard(
-                      title: 'Avg Activity',
-                      rows: _avgActivity,
-                    ),
+                    _buildStatCard(title: 'Avg Activity', rows: _avgActivity),
                     const SizedBox(height: 16),
-                    _buildStatCard(
-                      title: 'Max Activity',
-                      rows: _maxActivity,
-                    ),
+                    _buildStatCard(title: 'Max Activity', rows: _maxActivity),
                     const SizedBox(height: 16),
-                    _buildStatCard(
-                      title: 'Token',
-                      rows: _tokenStats,
-                    ),
+                    _buildStatCard(title: 'Token', rows: _tokenStats),
                     const SizedBox(height: 16),
                   ],
                 ),
               ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
+      bottomNavigationBar: const CustomBottomNavBar(currentIndex: 0),
     );
   }
 
@@ -154,99 +147,34 @@ class _StatisticsPageState extends State<StatisticsPage> {
             ),
           ),
           const SizedBox(height: 24),
-          ...rows.entries.map((entry) => Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      entry.key,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
+          ...rows.entries
+              .map(
+                (entry) => Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        entry.key,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    Text(
-                      entry.value,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      Text(
+                        entry.value,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              )).toList(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return SafeArea(
-      child: Container(
-        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(40),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildNavItem(
-              icon: Icons.home_rounded,
-              label: 'HOME',
-              isActive: true,
-              onTap: () => Navigator.popUntil(context, (route) => route.isFirst),
-            ),
-            _buildNavItem(
-              icon: Icons.location_on_rounded,
-              label: 'MAP',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.track_changes_rounded,
-              label: 'CHALLENGE',
-              isActive: false,
-              onTap: () {},
-            ),
-            _buildNavItem(
-              icon: Icons.ios_share_rounded,
-              label: 'SHARE',
-              isActive: false,
-              onTap: () {},
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    final color = isActive ? Colors.red[700]! : Colors.white;
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
+              )
+              .toList(),
         ],
       ),
     );

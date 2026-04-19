@@ -36,7 +36,10 @@ class _DataSyncPageState extends State<DataSyncPage> {
         finalValue = false;
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('คุณปฎิเสธหรือสิทธิ์การเข้าถึงข้อมูลสุขภาพล้มเหลว')),
+            const SnackBar(
+              content: Text('สิทธิ์ล้มเหลว: โปรดเปิดแอป "สุขภาพ (Health)" บน iPhone > โปรไฟล์ > แอป > แล้วอนุญาตให้แอปเข้าถึงข้อมูล'),
+              duration: Duration(seconds: 4),
+            ),
           );
         }
       }
